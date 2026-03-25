@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "WebSearch",
+      "Bash(npm info:*)",
+      "Bash(npx create-expo-app:*)",
+      "Bash(npm view:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(list\\(d.get\\(''''dependencies'''',{}\\).keys\\(\\)\\), indent=2\\)\\)\")",
+      "Bash(npx:*)",
+      "Bash(cp:*)",
+      "Bash(for f:*)",
+      "Bash(do cp:*)",
+      "Bash(done)",
+      "Bash(cp -r /tmp/MyGameTemp/assets /mnt/c/Users/Dell/Desktop/MyGame/assets)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const p = require\\(''/mnt/c/Users/Dell/Desktop/MyGame/node_modules/react-native-reanimated/package.json''\\); console.log\\(''reanimated version:'', p.version\\);\")",
+      "Bash(node -e \":*)",
+      "Bash(sudo npm:*)",
+      "Bash(npm cache:*)",
+      "Bash(/mnt/c/Users/Dell/AppData/Local/Android/Sdk/platform-tools/adb.exe version:*)",
+      "Bash(adb devices:*)",
+      "Bash(powershell.exe -Command \"New-NetFirewallRule -DisplayName 'Expo Metro' -Direction Inbound -Protocol TCP -LocalPort 8081 -Action Allow\" 2>&1)",
+      "Bash(npm show:*)",
+      "Bash(node:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''react-native:'''', d.get\\(''''react-native'''',''''N/A''''\\)\\); print\\(''''react:'''', d.get\\(''''react'''',''''N/A''''\\)\\)\")",
+      "Bash(node -e \"console.log\\(require\\(''/mnt/c/Users/Dell/Desktop/MyGame/node_modules/expo/package.json''\\).version\\)\")",
+      "Bash(find /mnt/c/Users/Dell/Desktop/MyGame/node_modules/react-native-reanimated -name *.d.ts)",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npx tsc --noEmit 2>&1\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue; Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue; npm install --legacy-peer-deps 2>&1 | Select-Object -Last 8\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npm install react-native-worklets --legacy-peer-deps 2>&1 | Select-Object -Last 5\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npm install react-native-worklets@0.5.1 --legacy-peer-deps 2>&1 | Select-Object -Last 5\")",
+      "Bash(find /mnt/c/Users/Dell/Desktop/MyGame/src/rendering -type f -name *.js -o -name *.ts)"
+    ]
+  }
+}
