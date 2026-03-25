@@ -5,8 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
-  StatusBar,
+  Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useKeepAwake } from 'expo-keep-awake';
 
@@ -20,7 +22,17 @@ import { UpgradeOption } from './src/game/state/types';
 
 // ─── Game Screen ─────────────────────────────────────────────────────────────
 
-function GameScreen({ onExit }: { onExit: () => void }) {
+function GameScreen({
+  onExit,
+  playerPhoto,
+  bodyColor,
+  glowRgb,
+}: {
+  onExit: () => void;
+  playerPhoto: string | null;
+  bodyColor: string;
+  glowRgb: string;
+}) {
   useKeepAwake();
   const { width, height } = useWindowDimensions();
   const {
@@ -56,6 +68,9 @@ function GameScreen({ onExit }: { onExit: () => void }) {
         screenH={height}
         onLevelUp={handleLevelUp}
         onGameOver={handleGameOver}
+        playerPhoto={playerPhoto}
+        bodyColor={bodyColor}
+        glowRgb={glowRgb}
       />
 
       {/* Joystick overlay */}
@@ -78,13 +93,13 @@ function GameScreen({ onExit }: { onExit: () => void }) {
         <View style={styles.overlay}>
           <Text style={styles.overlayTitle}>DURAKLATILDI</Text>
           <TouchableOpacity style={styles.btn} onPress={pauseGame}>
-            <Text style={styles.btnText}>Devam Et</Text>
+            <Text style={styles.btnText}>Oyuna Devam Et</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={handleRestart}>
             <Text style={styles.btnText}>Yeniden Başla</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={onExit}>
-            <Text style={styles.btnText}>Ana Menü</Text>
+            <Text style={styles.btnText}>Ana Menüye Dön</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -106,13 +121,92 @@ function GameScreen({ onExit }: { onExit: () => void }) {
   );
 }
 
+// ─── Preset tanımları ─────────────────────────────────────────────────────────
+
+const PLAYER_PRESETS = [
+  { id: 'blue',   color: '#4fc3f7', rgb: '79,195,247',  label: 'Mavi'     },
+  { id: 'red',    color: '#ff5566', rgb: '255,85,102',   label: 'Kırmızı'  },
+  { id: 'green',  color: '#44ff88', rgb: '68,255,136',   label: 'Yeşil'    },
+  { id: 'purple', color: '#cc77ff', rgb: '204,119,255',  label: 'Mor'      },
+  { id: 'gold',   color: '#ffe066', rgb: '255,224,102',  label: 'Altın'    },
+  { id: 'pink',   color: '#ff88cc', rgb: '255,136,204',  label: 'Pembe'    },
+];
+
 // ─── Menu Screen ─────────────────────────────────────────────────────────────
 
-function MenuScreen({ onStart }: { onStart: () => void }) {
+function MenuScreen({
+  onStart,
+  playerPhoto,
+  presetId,
+  onPhotoChange,
+  onPresetChange,
+}: {
+  onStart: () => void;
+  playerPhoto: string | null;
+  presetId: string;
+  onPhotoChange: (uri: string | null) => void;
+  onPresetChange: (id: string) => void;
+}) {
+  const pickPhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      onPhotoChange(result.assets[0].uri);
+    }
+  }, [onPhotoChange]);
+
+  const selectPreset = useCallback((id: string) => {
+    onPhotoChange(null);   // fotoğraf modunu kapat
+    onPresetChange(id);
+  }, [onPhotoChange, onPresetChange]);
+
   return (
     <View style={styles.menuContainer}>
       <Text style={styles.gameTitle}>VAMPIRE{'\n'}SURVIVORS</Text>
-      <Text style={styles.gameSubtitle}>React Native Edition</Text>
+
+      <Text style={styles.sectionLabel}>Oyuncu Seç</Text>
+
+      {/* Preset baloncuklar */}
+      <View style={styles.presetRow}>
+        {PLAYER_PRESETS.map(p => {
+          const selected = !playerPhoto && presetId === p.id;
+          return (
+            <TouchableOpacity
+              key={p.id}
+              style={[styles.presetItem, selected && styles.presetSelected]}
+              onPress={() => selectPreset(p.id)}
+            >
+              <View style={[styles.presetCircle, { backgroundColor: p.color,
+                shadowColor: p.color, shadowOpacity: 0.8, shadowRadius: 6, elevation: 6 }]} />
+              <Text style={[styles.presetLabel, selected && { color: '#fff' }]}>{p.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Fotoğraf seçeneği */}
+        <TouchableOpacity
+          style={[styles.presetItem, !!playerPhoto && styles.presetSelected]}
+          onPress={pickPhoto}
+        >
+          {playerPhoto ? (
+            <Image source={{ uri: playerPhoto }} style={styles.presetPhoto} />
+          ) : (
+            <View style={[styles.presetCircle, styles.presetPhotoPlaceholder]}>
+              <Text style={{ fontSize: 20 }}>📷</Text>
+            </View>
+          )}
+          <Text style={[styles.presetLabel, !!playerPhoto && { color: '#fff' }]}>
+            {playerPhoto ? 'Fotoğraf' : 'Ekle'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={[styles.btn, styles.btnLarge]} onPress={onStart}>
         <Text style={[styles.btnText, styles.btnTextLarge]}>OYNA</Text>
       </TouchableOpacity>
@@ -124,15 +218,32 @@ function MenuScreen({ onStart }: { onStart: () => void }) {
 
 export default function App() {
   const [screen, setScreen] = useState<'menu' | 'game'>('menu');
+  const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
+  const [presetId, setPresetId] = useState('blue');
+
+  const preset = PLAYER_PRESETS.find(p => p.id === presetId) ?? PLAYER_PRESETS[0];
+  const bodyColor = preset.color;
+  const glowRgb   = preset.rgb;
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <StatusBar hidden />
+      <StatusBar hidden={true} translucent={true} />
       {screen === 'menu' && (
-        <MenuScreen onStart={() => setScreen('game')} />
+        <MenuScreen
+          onStart={() => setScreen('game')}
+          playerPhoto={playerPhoto}
+          presetId={presetId}
+          onPhotoChange={setPlayerPhoto}
+          onPresetChange={setPresetId}
+        />
       )}
       {screen === 'game' && (
-        <GameScreen onExit={() => setScreen('menu')} />
+        <GameScreen
+          onExit={() => setScreen('menu')}
+          playerPhoto={playerPhoto}
+          bodyColor={bodyColor}
+          glowRgb={glowRgb}
+        />
       )}
     </GestureHandlerRootView>
   );
@@ -161,11 +272,34 @@ const styles = StyleSheet.create({
     lineHeight: 50,
     marginBottom: 8,
   },
-  gameSubtitle: {
-    fontSize: 14,
-    color: '#6666aa',
-    marginBottom: 40,
-    letterSpacing: 2,
+  photoBtn: {
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 8,
+  },
+  photoPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#4fc3f7',
+  },
+  photoPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#3a3a6c',
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoIcon: {
+    fontSize: 28,
+  },
+  photoLabel: {
+    color: '#8888bb',
+    fontSize: 13,
   },
   gameContainer: {
     flex: 1,
@@ -223,5 +357,52 @@ const styles = StyleSheet.create({
   btnTextLarge: {
     fontSize: 22,
     letterSpacing: 3,
+  },
+  sectionLabel: {
+    color: '#8888bb',
+    fontSize: 13,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  presetItem: {
+    alignItems: 'center',
+    gap: 4,
+    padding: 6,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  presetSelected: {
+    borderColor: '#ffe066',
+    backgroundColor: 'rgba(255,224,102,0.08)',
+  },
+  presetCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  presetLabel: {
+    color: '#8888bb',
+    fontSize: 11,
+  },
+  presetPhoto: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  presetPhotoPlaceholder: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 2,
+    borderColor: '#3a3a6c',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

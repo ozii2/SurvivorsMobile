@@ -89,6 +89,7 @@ export function tickEnemies(gs: GameState, dt: number): void {
     if (!e.active) continue;
 
     if (e.contactTimer > 0) e.contactTimer -= dt;
+    if (e.hitFlashTimer > 0) e.hitFlashTimer -= dt;
 
     // Seek player
     const dx = px - e.position.x;

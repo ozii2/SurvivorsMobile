@@ -11,7 +11,7 @@ export function spawnProjectile(
   lifetime: number,
   radius: number,
   weaponId: WeaponId
-): void {
+): ProjectileEntity | null {
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
     if (!p.active) {
@@ -27,10 +27,10 @@ export function spawnProjectile(
       p.hitEnemyIds.clear();
       gs.idCounter++;
       p.id = gs.idCounter;
-      return;
+      return p;
     }
   }
-  // Pool full — silently ignore (better than crashing)
+  return null; // Pool full
 }
 
 export function tickProjectiles(gs: GameState, dt: number): void {
@@ -40,6 +40,8 @@ export function tickProjectiles(gs: GameState, dt: number): void {
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
     if (!p.active) continue;
+    // Fireballs are persistent — repositioned every frame by WeaponSystem
+    if (p.weaponId === 'fireball') continue;
 
     p.position.x += p.velocity.x * dt;
     p.position.y += p.velocity.y * dt;

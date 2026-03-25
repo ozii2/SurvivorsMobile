@@ -1,4 +1,4 @@
-import { GameState, WeaponInstance } from '../state/types';
+import { GameState, WeaponInstance, ProjectileEntity } from '../state/types';
 import { spawnProjectile } from './ProjectileSystem';
 
 const TWO_PI = Math.PI * 2;
@@ -31,37 +31,53 @@ function tickDagger(gs: GameState, weapon: WeaponInstance, dt: number): void {
 }
 
 // ─── Fireball ─────────────────────────────────────────────────────────────────
-// Orbiting fireballs that rotate around the player
+// Persistent orbiting fireballs — repositioned every frame, never respawned.
+// hitEnemyIds cleared every 0.5 s so they can re-hit enemies periodically.
 function tickFireball(gs: GameState, weapon: WeaponInstance, dt: number): void {
-  const orbitSpeed = 1.8 + weapon.level * 0.3; // rad/sec
-  const orbitRadius = 60 + weapon.level * 10;
-  const damage = 15 + weapon.level * 5;
-  const ballCount = weapon.level;
+  const orbitSpeed  = 1.8 + weapon.level * 0.3; // rad/sec
+  const orbitRadius = 60  + weapon.level * 10;
+  const damage      = 15  + weapon.level * 5;
+  const ballCount   = Math.max(1, weapon.level);
+  const radius      = 12  + weapon.level * 2;
 
   weapon.angle = ((weapon.angle ?? 0) + orbitSpeed * dt) % TWO_PI;
-  const cooldown = 0.05; // just for spawning — we track via angle
-  weapon.cooldownTimer -= dt;
-  if (weapon.cooldownTimer > 0) return;
-  weapon.cooldownTimer = cooldown;
 
-  // Spawn burst of orbs positioned in a circle (they stay still for 1 frame)
-  // Actually fireball is better modeled as persistent, but for pool approach:
-  // Spawn short-lifetime orbs that are re-spawned each frame at orbit position
+  // Hit-reset timer: clear hitEnemyIds every 0.5 s so fireball re-damages enemies
+  weapon.cooldownTimer -= dt;
+  const resetHits = weapon.cooldownTimer <= 0;
+  if (resetHits) weapon.cooldownTimer = 0.5;
+
+  // Collect existing persistent fireball slots
+  const slots: ProjectileEntity[] = [];
+  for (let i = 0; i < gs.projectiles.length; i++) {
+    const p = gs.projectiles[i];
+    if (p.active && p.weaponId === 'fireball') slots.push(p);
+  }
+
+  // Spawn any missing slots (only on first use or after level-up)
+  while (slots.length < ballCount) {
+    const slot = spawnProjectile(gs, 0, 0, 0, 0, damage, 99999, radius, 'fireball');
+    if (!slot) break;
+    slots.push(slot);
+  }
+
+  // Reposition each slot to its exact orbit position — no velocity drift
   const px = gs.player.position.x;
   const py = gs.player.position.y;
-
-  for (let i = 0; i < ballCount; i++) {
-    const baseAngle = weapon.angle + (TWO_PI / ballCount) * i;
-    const ox = px + Math.cos(baseAngle) * orbitRadius;
-    const oy = py + Math.sin(baseAngle) * orbitRadius;
-    // Velocity perpendicular to radius for circular motion look
-    spawnProjectile(
-      gs, ox, oy,
-      Math.cos(baseAngle + Math.PI / 2) * 20,
-      Math.sin(baseAngle + Math.PI / 2) * 20,
-      damage, 0.08, 12 + weapon.level * 2, 'fireball'
-    );
+  for (let i = 0; i < Math.min(slots.length, ballCount); i++) {
+    const angle = weapon.angle + (TWO_PI / ballCount) * i;
+    slots[i].position.x = px + Math.cos(angle) * orbitRadius;
+    slots[i].position.y = py + Math.sin(angle) * orbitRadius;
+    slots[i].velocity.x = 0;
+    slots[i].velocity.y = 0;
+    slots[i].lifetime   = 99999;
+    slots[i].damage     = damage;
+    slots[i].radius     = radius;
+    if (resetHits) slots[i].hitEnemyIds.clear();
   }
+
+  // Remove excess slots (level-down not possible but keep as safety)
+  for (let i = ballCount; i < slots.length; i++) slots[i].active = false;
 }
 
 // ─── Whip ─────────────────────────────────────────────────────────────────────

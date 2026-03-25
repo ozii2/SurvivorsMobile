@@ -26,10 +26,10 @@ export const GameConfig = {
   GRID_CELL_SIZE: 80,
 
   // Pool sizes
-  POOL_ENEMIES: 128,
-  POOL_PROJECTILES: 256,
-  POOL_GEMS: 200,
-  POOL_PARTICLES: 300,
+  POOL_ENEMIES: 110,    // wave max: 60+25+15+2 = 102
+  POOL_PROJECTILES: 128, // max active at once: ~50-60
+  POOL_GEMS: 160,
+  POOL_PARTICLES: 180,
 
   // UI sync rate
   UI_SYNC_INTERVAL: 0.1,    // seconds

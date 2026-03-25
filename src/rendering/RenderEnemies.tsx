@@ -30,13 +30,14 @@ export function RenderEnemies({ enemies, worldOffset, screenW, screenH }: Props)
         const cfg = EnemyConfig[enemy.type];
         const hpRatio = enemy.hp / enemy.maxHp;
         const glowColor = GLOW_COLORS[enemy.type];
+        const bodyColor = enemy.hitFlashTimer > 0 ? '#ffffff' : cfg.color;
 
         return (
           <React.Fragment key={enemy.id}>
             {/* Glow halo */}
             <Circle cx={sx} cy={sy} r={enemy.radius * 2.0} color={glowColor} />
             {/* Body */}
-            <Circle cx={sx} cy={sy} r={enemy.radius} color={cfg.color} />
+            <Circle cx={sx} cy={sy} r={enemy.radius} color={bodyColor} />
             {/* Highlight */}
             <Circle cx={sx - 3} cy={sy - 3} r={enemy.radius * 0.3} color="rgba(255,255,255,0.2)" />
             {/* HP bar background */}

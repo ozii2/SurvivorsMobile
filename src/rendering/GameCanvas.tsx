@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { Canvas } from '@shopify/react-native-skia';
 import { useSharedValue, useFrameCallback, runOnJS, FrameInfo } from 'react-native-reanimated';
 
-import { GameState, UpgradeOption } from '../game/state/types';
+import { GameState, UpgradeOption, EnemyEntity, ProjectileEntity, XPGemEntity, ParticleEntity } from '../game/state/types';
 import { GameConfig } from '../game/config/GameConfig';
 
 import { tickPlayer, updateCameraCenter } from '../game/systems/PlayerSystem';
@@ -33,6 +33,9 @@ interface Props {
   screenH: number;
   onLevelUp: (choices: UpgradeOption[]) => void;
   onGameOver: () => void;
+  playerPhoto?: string | null;
+  bodyColor?: string;
+  glowRgb?: string;
 }
 
 export function GameCanvas({
@@ -43,6 +46,9 @@ export function GameCanvas({
   screenH,
   onLevelUp,
   onGameOver,
+  playerPhoto,
+  bodyColor,
+  glowRgb,
 }: Props) {
   const syncStore = useGameStore(s => s.syncFromGameState);
   const setUpgradeChoices = useGameStore(s => s.setUpgradeChoices);
@@ -50,6 +56,16 @@ export function GameCanvas({
   const [, setTick] = useState(0);
   const accumulator = useRef(0);
   const syncTimer = useRef(0);
+
+  // Pre-filtered active entity lists — updated once per frame in runLoop,
+  // never allocated anew (length reset to 0, then push active items).
+  // Passed to render components so React map() only sees active entities.
+  const renderRef = useRef({
+    enemies:     [] as EnemyEntity[],
+    projectiles: [] as ProjectileEntity[],
+    gems:        [] as XPGemEntity[],
+    particles:   [] as ParticleEntity[],
+  });
 
   // Entire game loop runs on JS thread
   const runLoop = useCallback((timeSincePreviousFrame: number) => {
@@ -77,6 +93,7 @@ export function GameCanvas({
       tickXPGems(gs, step);
       tickParticles(gs, step);
       tickCollisions(gs);
+      if (gs.shakeTimer > 0) gs.shakeTimer -= step;
 
       accumulator.current -= step;
 
@@ -85,6 +102,17 @@ export function GameCanvas({
         break;
       }
     }
+
+    // Build filtered render lists once per frame (no new arrays — reuse via length=0+push)
+    const re = renderRef.current;
+    re.enemies.length = 0;
+    re.projectiles.length = 0;
+    re.gems.length = 0;
+    re.particles.length = 0;
+    for (let i = 0; i < gs.enemies.length; i++)     { if (gs.enemies[i].active)     re.enemies.push(gs.enemies[i]); }
+    for (let i = 0; i < gs.projectiles.length; i++) { if (gs.projectiles[i].active) re.projectiles.push(gs.projectiles[i]); }
+    for (let i = 0; i < gs.xpGems.length; i++)      { if (gs.xpGems[i].active)      re.gems.push(gs.xpGems[i]); }
+    for (let i = 0; i < gs.particles.length; i++)   { if (gs.particles[i].active)   re.particles.push(gs.particles[i]); }
 
     // UI sync (~10 Hz)
     syncTimer.current += dt;
@@ -118,15 +146,26 @@ export function GameCanvas({
   const gs = gameStateRef.current;
   if (!gs) return null;
 
+  const re = renderRef.current;
+
+  // Screen shake: offset render without touching game state worldOffset
+  const shakeFactor = gs.shakeTimer > 0 ? gs.shakeTimer / 0.30 : 0;
+  const shakeX = shakeFactor > 0 ? (Math.random() - 0.5) * 2 * gs.shakeMagnitude * shakeFactor : 0;
+  const shakeY = shakeFactor > 0 ? (Math.random() - 0.5) * 2 * gs.shakeMagnitude * shakeFactor : 0;
+  const renderOffset = {
+    x: gs.worldOffset.x + shakeX,
+    y: gs.worldOffset.y + shakeY,
+  };
+
   return (
     <Canvas style={[styles.canvas, { width: screenW, height: screenH }]}>
-      <RenderBackground worldOffset={gs.worldOffset} screenW={screenW} screenH={screenH} />
-      <RenderXPGems gems={gs.xpGems} worldOffset={gs.worldOffset} screenW={screenW} screenH={screenH} />
-      <RenderEnemies enemies={gs.enemies} worldOffset={gs.worldOffset} screenW={screenW} screenH={screenH} />
-      <RenderProjectiles projectiles={gs.projectiles} worldOffset={gs.worldOffset} screenW={screenW} screenH={screenH} />
-      <RenderParticles particles={gs.particles} worldOffset={gs.worldOffset} screenW={screenW} screenH={screenH} />
-      <RenderPlayer player={gs.player} worldOffset={gs.worldOffset} />
-      <RenderHUD player={gs.player} gameTime={gs.gameTime} screenW={screenW} />
+      <RenderBackground worldOffset={renderOffset} screenW={screenW} screenH={screenH} />
+      <RenderXPGems gems={re.gems} worldOffset={renderOffset} screenW={screenW} screenH={screenH} />
+      <RenderEnemies enemies={re.enemies} worldOffset={renderOffset} screenW={screenW} screenH={screenH} />
+      <RenderProjectiles projectiles={re.projectiles} worldOffset={renderOffset} screenW={screenW} screenH={screenH} />
+      <RenderParticles particles={re.particles} worldOffset={renderOffset} screenW={screenW} screenH={screenH} />
+      <RenderPlayer player={gs.player} worldOffset={renderOffset} photoUri={playerPhoto} bodyColor={bodyColor} glowRgb={glowRgb} />
+      <RenderHUD player={gs.player} enemies={re.enemies} gameTime={gs.gameTime} screenW={screenW} screenH={screenH} />
     </Canvas>
   );
 }

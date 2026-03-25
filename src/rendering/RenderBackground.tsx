@@ -24,31 +24,24 @@ const STARS = Array.from({ length: STAR_COUNT }, (_, i) => {
 });
 
 export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
-  // ── Grid lines — recompute only when crossing a grid cell boundary ──────────
-  const gridTileX = Math.floor(worldOffset.x / GRID_SIZE);
-  const gridTileY = Math.floor(worldOffset.y / GRID_SIZE);
-  const gridLines = useMemo(() => {
-    const ox = gridTileX * GRID_SIZE;
-    const oy = gridTileY * GRID_SIZE;
-    const lines: React.ReactElement[] = [];
-
-    for (let wx = ox; wx < ox + screenW + GRID_SIZE * 2; wx += GRID_SIZE) {
-      const sx = wx - ox;
-      lines.push(
-        <Line key={`v${wx}`} p1={vec(sx, 0)} p2={vec(sx, screenH)}
-          color="rgba(110,80,200,0.12)" strokeWidth={1} />,
-      );
-    }
-    for (let wy = oy; wy < oy + screenH + GRID_SIZE * 2; wy += GRID_SIZE) {
-      const sy = wy - oy;
-      lines.push(
-        <Line key={`h${wy}`} p1={vec(0, sy)} p2={vec(screenW, sy)}
-          color="rgba(110,80,200,0.12)" strokeWidth={1} />,
-      );
-    }
-    return lines;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gridTileX, gridTileY, screenW, screenH]);
+  // ── Grid lines — computed fresh each frame so they scroll smoothly ──────────
+  const gridLines: React.ReactElement[] = [];
+  const startX = Math.floor(worldOffset.x / GRID_SIZE) * GRID_SIZE;
+  const startY = Math.floor(worldOffset.y / GRID_SIZE) * GRID_SIZE;
+  for (let wx = startX; wx < worldOffset.x + screenW + GRID_SIZE; wx += GRID_SIZE) {
+    const sx = wx - worldOffset.x;
+    gridLines.push(
+      <Line key={`v${wx}`} p1={vec(sx, 0)} p2={vec(sx, screenH)}
+        color="rgba(110,80,200,0.12)" strokeWidth={1} />,
+    );
+  }
+  for (let wy = startY; wy < worldOffset.y + screenH + GRID_SIZE; wy += GRID_SIZE) {
+    const sy = wy - worldOffset.y;
+    gridLines.push(
+      <Line key={`h${wy}`} p1={vec(0, sy)} p2={vec(screenW, sy)}
+        color="rgba(110,80,200,0.12)" strokeWidth={1} />,
+    );
+  }
 
   // ── Visible stars — recalculate only when player moves 150px+ ───────────────
   const starTileX = Math.floor(worldOffset.x / 150);
@@ -75,19 +68,13 @@ export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
         />
       </Rect>
 
-      {/* ── Nebula blobs ─── large, soft, very transparent ────────────── */}
-      {/* Top-left violet cloud */}
-      <Circle cx={screenW * 0.15} cy={screenH * 0.18} r={screenW * 0.55}
-        color="rgba(120,50,220,0.055)" />
-      {/* Bottom-right blue cloud */}
-      <Circle cx={screenW * 0.88} cy={screenH * 0.82} r={screenW * 0.50}
-        color="rgba(40,80,200,0.05)" />
-      {/* Centre warm glow */}
-      <Circle cx={screenW * 0.5} cy={screenH * 0.45} r={screenW * 0.38}
-        color="rgba(160,60,180,0.04)" />
-      {/* Top-right cyan hint */}
-      <Circle cx={screenW * 0.85} cy={screenH * 0.12} r={screenW * 0.30}
-        color="rgba(40,180,200,0.035)" />
+      {/* ── Nebula blobs — world-space, scroll with camera ───────────── */}
+      <Circle cx={500  - worldOffset.x} cy={500  - worldOffset.y} r={420} color="rgba(120,50,220,0.06)" />
+      <Circle cx={2500 - worldOffset.x} cy={2400 - worldOffset.y} r={480} color="rgba(40,80,200,0.055)" />
+      <Circle cx={1500 - worldOffset.x} cy={1500 - worldOffset.y} r={380} color="rgba(160,60,180,0.045)" />
+      <Circle cx={2800 - worldOffset.x} cy={400  - worldOffset.y} r={320} color="rgba(40,180,200,0.04)" />
+      <Circle cx={300  - worldOffset.x} cy={2600 - worldOffset.y} r={350} color="rgba(100,30,200,0.05)" />
+      <Circle cx={1800 - worldOffset.x} cy={800  - worldOffset.y} r={260} color="rgba(80,160,220,0.04)" />
 
       {/* ── Grid ─────────────────────────────────────────────────────── */}
       {gridLines}

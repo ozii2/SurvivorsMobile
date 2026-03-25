@@ -21,6 +21,7 @@ export function tickCollisions(gs: GameState): void {
       const minDist = proj.radius + enemy.radius;
       if (dx * dx + dy * dy < minDist * minDist) {
         enemy.hp -= proj.damage;
+        enemy.hitFlashTimer = 0.12;
         proj.hitEnemyIds.add(enemy.id);
 
         // Whip/fireball can pierce; dagger deactivates on first hit
@@ -51,6 +52,8 @@ export function tickCollisions(gs: GameState): void {
         const dmg = Math.max(1, enemy.damage - p.armor);
         p.hp -= dmg;
         p.invincibleTimer = GameConfig.PLAYER_IFRAMES;
+        gs.shakeTimer = 0.30;
+        gs.shakeMagnitude = 7;
         enemy.contactTimer = 0.5;
 
         if (p.hp <= 0) {

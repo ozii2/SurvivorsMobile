@@ -30,7 +30,9 @@
       "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue; Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue; npm install --legacy-peer-deps 2>&1 | Select-Object -Last 8\")",
       "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npm install react-native-worklets --legacy-peer-deps 2>&1 | Select-Object -Last 5\")",
       "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npm install react-native-worklets@0.5.1 --legacy-peer-deps 2>&1 | Select-Object -Last 5\")",
-      "Bash(find /mnt/c/Users/Dell/Desktop/MyGame/src/rendering -type f -name *.js -o -name *.ts)"
+      "Bash(find /mnt/c/Users/Dell/Desktop/MyGame/src/rendering -type f -name *.js -o -name *.ts)",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npx expo install expo-image-picker 2>&1\")",
+      "Bash(powershell.exe -Command \"cd 'C:\\\\Users\\\\Dell\\\\Desktop\\\\MyGame'; npm install expo-image-picker --legacy-peer-deps 2>&1\")"
     ]
   }
 }

@@ -13,6 +13,7 @@ export function useGameEngine() {
 
   const resetGame = useGameStore(s => s.resetUI);
   const clearChoices = useGameStore(s => s.clearUpgradeChoices);
+  const setPaused = useGameStore(s => s.setPaused);
 
   const handleLevelUp = useCallback((choices: UpgradeOption[]) => {
     // Canvas already paused the game state and pushed choices via store
@@ -28,8 +29,10 @@ export function useGameEngine() {
 
   const pauseGame = useCallback(() => {
     const gs = gameStateRef.current;
-    gs.isPaused = !gs.isPaused;
-  }, []);
+    const next = !gs.isPaused;
+    gs.isPaused = next;
+    setPaused(next); // Zustand'ı anında güncelle — game loop paused'da sync etmiyor
+  }, [setPaused]);
 
   const restartGame = useCallback(() => {
     resetWaveAccumulators();
