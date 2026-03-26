@@ -129,6 +129,13 @@ export function tickEnemies(gs: GameState, dt: number): void {
       vy = vy * 0.8 + (sepY / sepCount) * e.speed * 0.2;
     }
 
+    // Normalize final velocity to ensure consistent movement speed
+    const mag = Math.sqrt(vx * vx + vy * vy);
+    if (mag > 0.001) {
+      vx = (vx / mag) * e.speed;
+      vy = (vy / mag) * e.speed;
+    }
+
     const accel = Math.min(1, 8 * dt);
     e.velocity.x += (vx - e.velocity.x) * accel;
     e.velocity.y += (vy - e.velocity.y) * accel;

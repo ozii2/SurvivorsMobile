@@ -49,7 +49,8 @@ export function tickCollisions(gs: GameState): void {
       const dy = p.position.y - enemy.position.y;
       const minDist = p.radius + enemy.radius;
       if (dx * dx + dy * dy < minDist * minDist) {
-        const dmg = Math.max(1, enemy.damage - p.armor);
+        const armorReduction = p.armor / (p.armor + 20);
+        const dmg = Math.max(1, Math.round(enemy.damage * (1 - armorReduction)));
         p.hp -= dmg;
         p.invincibleTimer = GameConfig.PLAYER_IFRAMES;
         gs.shakeTimer = 0.30;
