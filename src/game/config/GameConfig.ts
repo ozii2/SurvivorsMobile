@@ -6,8 +6,8 @@ export const GameConfig = {
   // Player
   PLAYER_RADIUS: 18,
   PLAYER_SPEED: 150,        // pixels/sec
-  PLAYER_MAX_HP: 100,
-  PLAYER_IFRAMES: 1.2,      // seconds of invincibility after hit
+  PLAYER_MAX_HP: 75,
+  PLAYER_IFRAMES: 0.8,      // seconds of invincibility after hit
   PLAYER_MAGNET_RADIUS: 100,
   PLAYER_ARMOR: 0,
 
@@ -38,6 +38,17 @@ export const GameConfig = {
   FIXED_STEP: 1 / 60,
   MAX_DELTA: 0.05,           // cap at 50ms to prevent spiral of death
 } as const;
+
+export const LightningConfig: Record<number, { damage: number; targets: number; cooldown: number }> = {
+  1: { damage: 12, targets: 1, cooldown: 1.80 },
+  2: { damage: 15, targets: 1, cooldown: 1.60 },
+  3: { damage: 18, targets: 2, cooldown: 1.40 },
+  4: { damage: 22, targets: 2, cooldown: 1.25 },
+  5: { damage: 27, targets: 3, cooldown: 1.10 },
+  6: { damage: 32, targets: 3, cooldown: 1.00 },
+  7: { damage: 38, targets: 4, cooldown: 0.92 },
+  8: { damage: 45, targets: 4, cooldown: 0.85 },
+};
 
 export const EnemyConfig: Record<string, {
   radius: number;

@@ -48,5 +48,13 @@ export function applyUpgrade(gs: GameState, choice: UpgradeOption): void {
       p.magnetRadius = Math.floor(p.magnetRadius * 1.5);
       break;
     }
+    case 'crit': {
+      p.critChance = Math.min(p.critChance + 0.15, 0.75);
+      break;
+    }
+    case 'lifesteal': {
+      p.lifesteal = Math.min(p.lifesteal + 0.25, 1.0);
+      break;
+    }
   }
 }

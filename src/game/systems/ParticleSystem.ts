@@ -38,6 +38,35 @@ export function spawnDeathParticles(
   }
 }
 
+export function spawnParticle(
+  gs: GameState,
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  color: string,
+  lifetime: number,
+  radius: number
+): void {
+  for (let pi = 0; pi < gs.particles.length; pi++) {
+    const slot = gs.particles[pi];
+    if (!slot.active) {
+      slot.active = true;
+      slot.position.x = x;
+      slot.position.y = y;
+      slot.velocity.x = vx;
+      slot.velocity.y = vy;
+      slot.color = color;
+      slot.lifetime = lifetime;
+      slot.maxLifetime = lifetime;
+      slot.radius = radius;
+      gs.idCounter++;
+      slot.id = gs.idCounter;
+      return;
+    }
+  }
+}
+
 export function tickParticles(gs: GameState, dt: number): void {
   for (let i = 0; i < gs.particles.length; i++) {
     const p = gs.particles[i];

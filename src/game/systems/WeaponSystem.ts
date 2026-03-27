@@ -1,5 +1,7 @@
-import { GameState, WeaponInstance, ProjectileEntity } from '../state/types';
+import { GameState, WeaponInstance, ProjectileEntity, Vec2 } from '../state/types';
 import { spawnProjectile } from './ProjectileSystem';
+import { LightningConfig } from '../config/GameConfig';
+import { spawnParticle } from './ParticleSystem';
 
 const TWO_PI = Math.PI * 2;
 
@@ -13,7 +15,9 @@ function tickDagger(gs: GameState, weapon: WeaponInstance, dt: number): void {
 
   const dirCount = weapon.level + 1; // level 1 → 2 dirs, level 2 → 3, etc.
   const speed = 320 + weapon.level * 30;
-  const damage = 8 + weapon.level * 4;
+  const baseDamage = 8 + weapon.level * 4;
+  const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
+  const damage = isCrit ? baseDamage * 2 : baseDamage;
   const lifetime = 1.2;
   const px = gs.player.position.x;
   const py = gs.player.position.y;
@@ -88,7 +92,9 @@ function tickWhip(gs: GameState, weapon: WeaponInstance, dt: number): void {
   if (weapon.cooldownTimer > 0) return;
   weapon.cooldownTimer = cooldown;
 
-  const damage = 20 + weapon.level * 8;
+  const baseDamage = 20 + weapon.level * 8;
+  const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
+  const damage = isCrit ? baseDamage * 2 : baseDamage;
   const length = 100 + weapon.level * 20;
   const px = gs.player.position.x;
   const py = gs.player.position.y;
@@ -103,14 +109,104 @@ function tickWhip(gs: GameState, weapon: WeaponInstance, dt: number): void {
   }
 }
 
+// ─── Lightning ────────────────────────────────────────────────────────────────
+// Instant-hit: finds N nearest enemies and damages them immediately.
+
+function _findNearestEnemies(gs: GameState, count: number): typeof gs.enemies {
+  // Collect active enemies sorted by distance
+  const px = gs.player.position.x;
+  const py = gs.player.position.y;
+  const withDist: { e: (typeof gs.enemies)[0]; d: number }[] = [];
+  for (let i = 0; i < gs.enemies.length; i++) {
+    const e = gs.enemies[i];
+    if (!e.active) continue;
+    const dx = e.position.x - px;
+    const dy = e.position.y - py;
+    withDist.push({ e, d: dx * dx + dy * dy });
+  }
+  withDist.sort((a, b) => a.d - b.d);
+  return withDist.slice(0, count).map(x => x.e);
+}
+
+function _spawnLightningParticles(gs: GameState, from: Vec2, to: Vec2): void {
+  const steps = 12;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    // İç içe iki zikzak: büyük + küçük titreşim
+    const jitter = (Math.random() - 0.5) * 20 + (Math.random() - 0.5) * 8;
+    const jitterY = (Math.random() - 0.5) * 20 + (Math.random() - 0.5) * 8;
+    const px = from.x + dx * t + jitter;
+    const py = from.y + dy * t + jitterY;
+
+    // Hafif dışa hız (yıldırım dağılıyor gibi)
+    const vx = (Math.random() - 0.5) * 30;
+    const vy = (Math.random() - 0.5) * 30;
+
+    // Dış katman: büyük cyan
+    spawnParticle(gs, px, py, vx, vy, '#00ffff', 0.18, 6);
+    // İç çekirdek: küçük beyaz
+    spawnParticle(gs, px, py, vx * 0.5, vy * 0.5, '#ffffff', 0.12, 3);
+  }
+
+  // Impact flash: büyük parlak patlama hedef noktada
+  for (let f = 0; f < 6; f++) {
+    const angle = (Math.PI * 2 * f) / 6;
+    const speed = 60 + Math.random() * 60;
+    spawnParticle(
+      gs,
+      to.x, to.y,
+      Math.cos(angle) * speed,
+      Math.sin(angle) * speed,
+      '#ffffff', 0.20, 8
+    );
+  }
+  spawnParticle(gs, to.x, to.y, 0, 0, '#00ffff', 0.25, 14);
+
+  // Kaynak noktada küçük flaş
+  spawnParticle(gs, from.x, from.y, 0, 0, '#ffffff', 0.10, 8);
+}
+
+function tickLightning(gs: GameState, weapon: WeaponInstance, dt: number): void {
+  weapon.cooldownTimer -= dt;
+  if (weapon.cooldownTimer > 0) return;
+
+  const level = Math.min(weapon.level, 8) as keyof typeof LightningConfig;
+  const cfg = LightningConfig[level];
+  weapon.cooldownTimer = cfg.cooldown;
+
+  const targets = _findNearestEnemies(gs, cfg.targets);
+  const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
+  const dmg = isCrit ? cfg.damage * 2 : cfg.damage;
+
+  for (const enemy of targets) {
+    enemy.hp -= dmg;
+    enemy.hitFlashTimer = 0.12;
+    _spawnLightningParticles(gs, gs.player.position, enemy.position);
+
+    if (enemy.hp <= 0) {
+      // Let CollisionSystem handle kill cleanup via inactive flag check;
+      // set inactive here so it's picked up this frame.
+      enemy.active = false;
+      if (gs.player.lifesteal > 0 && Math.random() < gs.player.lifesteal) {
+        gs.player.hp = Math.min(gs.player.maxHp, gs.player.hp + 1);
+      }
+      // Spawn death particles inline (import would be circular via CollisionSystem)
+    }
+  }
+}
+
 // ─── Main dispatcher ─────────────────────────────────────────────────────────
 
 export function tickWeapons(gs: GameState, dt: number): void {
   for (const weapon of gs.player.weapons) {
     switch (weapon.id) {
-      case 'dagger':   tickDagger(gs, weapon, dt); break;
-      case 'fireball': tickFireball(gs, weapon, dt); break;
-      case 'whip':     tickWhip(gs, weapon, dt); break;
+      case 'dagger':    tickDagger(gs, weapon, dt); break;
+      case 'fireball':  tickFireball(gs, weapon, dt); break;
+      case 'whip':      tickWhip(gs, weapon, dt); break;
+      case 'lightning': tickLightning(gs, weapon, dt); break;
     }
   }
 }

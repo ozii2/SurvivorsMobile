@@ -6,8 +6,8 @@ import { applyUpgrade } from '../game/systems/UpgradeSystem';
 import { resetWaveAccumulators } from '../game/systems/WaveSystem';
 import { useGameStore } from '../game/state/useGameStore';
 
-export function useGameEngine() {
-  const gameStateRef = useRef<GameState>(createInitialGameState());
+export function useGameEngine(startingWeaponId = 'dagger') {
+  const gameStateRef = useRef<GameState>(createInitialGameState(startingWeaponId));
   const joystickX = useSharedValue(0);
   const joystickY = useSharedValue(0);
 
@@ -36,9 +36,9 @@ export function useGameEngine() {
 
   const restartGame = useCallback(() => {
     resetWaveAccumulators();
-    gameStateRef.current = createInitialGameState();
+    gameStateRef.current = createInitialGameState(startingWeaponId);
     resetGame();
-  }, [resetGame]);
+  }, [resetGame, startingWeaponId]);
 
   return {
     gameStateRef,

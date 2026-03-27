@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   View,
@@ -6,7 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { UpgradeOption } from '../game/state/types';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { UpgradeOption, UpgradeType } from '../game/state/types';
 
 interface Props {
   visible: boolean;
@@ -14,25 +20,64 @@ interface Props {
   onChoose: (choice: UpgradeOption) => void;
 }
 
+const UPGRADE_STYLE: Record<UpgradeType, { icon: string; color: string }> = {
+  weapon_new:     { icon: '⚔️',  color: '#FF6B35' },
+  weapon_upgrade: { icon: '⬆️',  color: '#FFC107' },
+  max_hp:         { icon: '❤️',  color: '#FF4444' },
+  speed:          { icon: '💨',  color: '#4FC3F7' },
+  armor:          { icon: '🛡️',  color: '#AB47BC' },
+  magnet:         { icon: '🧲',  color: '#26C6DA' },
+  crit:           { icon: '💥',  color: '#FF9800' },
+  lifesteal:      { icon: '🩸',  color: '#E91E63' },
+};
+
 export function LevelUpModal({ visible, choices, onChoose }: Props) {
+  const translateY = useSharedValue(60);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (visible) {
+      translateY.value = withSpring(0, { damping: 15, stiffness: 120 });
+      opacity.value = withTiming(1, { duration: 180 });
+    } else {
+      translateY.value = 60;
+      opacity.value = 0;
+    }
+  }, [visible, translateY, opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="none">
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, animStyle]}>
           <Text style={styles.title}>SEVİYE ATLADI!</Text>
           <Text style={styles.subtitle}>Bir yetenek seç:</Text>
-          {choices.map(choice => (
-            <TouchableOpacity
-              key={choice.id}
-              style={styles.card}
-              onPress={() => onChoose(choice)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.cardTitle}>{choice.label}</Text>
-              <Text style={styles.cardDesc}>{choice.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {choices.map(choice => {
+            const style = UPGRADE_STYLE[choice.type] ?? { icon: '✨', color: '#ffffff' };
+            return (
+              <TouchableOpacity
+                key={choice.id}
+                style={[styles.card, { borderColor: `${style.color}66` }]}
+                onPress={() => onChoose(choice)}
+                activeOpacity={0.75}
+              >
+                {/* Colored left stripe */}
+                <View style={[styles.stripe, { backgroundColor: style.color }]} />
+                {/* Icon */}
+                <Text style={styles.icon}>{style.icon}</Text>
+                {/* Text content */}
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{choice.label}</Text>
+                  <Text style={styles.cardDesc}>{choice.description}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -41,17 +86,17 @@ export function LevelUpModal({ visible, choices, onChoose }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.80)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   container: {
-    width: '85%',
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    padding: 24,
+    width: '88%',
+    backgroundColor: '#12122a',
+    borderRadius: 18,
+    padding: 22,
     borderWidth: 1,
-    borderColor: '#3a3a5c',
+    borderColor: '#3a3a6a',
   },
   title: {
     fontSize: 22,
@@ -62,27 +107,42 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#aaaacc',
+    fontSize: 13,
+    color: '#8888aa',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   card: {
-    backgroundColor: '#252545',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e1e40',
+    borderRadius: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#4a4a7c',
+    overflow: 'hidden',
+  },
+  stripe: {
+    width: 4,
+    alignSelf: 'stretch',
+  },
+  icon: {
+    fontSize: 26,
+    marginHorizontal: 14,
+  },
+  cardContent: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingRight: 14,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   cardDesc: {
-    fontSize: 13,
-    color: '#9999bb',
+    fontSize: 12,
+    color: '#8888bb',
+    lineHeight: 17,
   },
 });

@@ -29,7 +29,8 @@ export function tickWaves(
       const toSpawn = Math.floor(accumulated);
       for (let s = 0; s < toSpawn; s++) {
         if (activeCount + s < group.max) {
-          spawnEnemy(gs, group.type as EnemyType, screenW, screenH);
+          const isElite = gs.waveNumber >= 5 && Math.random() < 0.05;
+          spawnEnemy(gs, group.type as EnemyType, screenW, screenH, isElite);
         }
       }
       spawnAccumulators.set(key, accumulated - toSpawn);

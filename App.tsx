@@ -16,6 +16,7 @@ import { GameCanvas } from './src/rendering/GameCanvas';
 import { VirtualJoystick } from './src/ui/VirtualJoystick';
 import { LevelUpModal } from './src/ui/LevelUpModal';
 import { HUDOverlay } from './src/ui/HUDOverlay';
+import { WeaponSelectScreen } from './src/ui/WeaponSelectScreen';
 import { useGameEngine } from './src/hooks/useGameEngine';
 import { useGameStore } from './src/game/state/useGameStore';
 import { UpgradeOption } from './src/game/state/types';
@@ -27,11 +28,13 @@ function GameScreen({
   playerPhoto,
   bodyColor,
   glowRgb,
+  startWeapon,
 }: {
   onExit: () => void;
   playerPhoto: string | null;
   bodyColor: string;
   glowRgb: string;
+  startWeapon: string;
 }) {
   useKeepAwake();
   const { width, height } = useWindowDimensions();
@@ -43,7 +46,7 @@ function GameScreen({
     chooseUpgrade,
     pauseGame,
     restartGame,
-  } = useGameEngine();
+  } = useGameEngine(startWeapon);
 
   const pendingChoices = useGameStore(s => s.pendingUpgradeChoices);
   const isGameOver = useGameStore(s => s.isGameOver);
@@ -217,9 +220,10 @@ function MenuScreen({
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState<'menu' | 'game'>('menu');
+  const [screen, setScreen] = useState<'menu' | 'weapon_select' | 'game'>('menu');
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
   const [presetId, setPresetId] = useState('blue');
+  const [startWeapon, setStartWeapon] = useState('dagger');
 
   const preset = PLAYER_PRESETS.find(p => p.id === presetId) ?? PLAYER_PRESETS[0];
   const bodyColor = preset.color;
@@ -230,11 +234,19 @@ export default function App() {
       <StatusBar hidden={true} translucent={true} />
       {screen === 'menu' && (
         <MenuScreen
-          onStart={() => setScreen('game')}
+          onStart={() => setScreen('weapon_select')}
           playerPhoto={playerPhoto}
           presetId={presetId}
           onPhotoChange={setPlayerPhoto}
           onPresetChange={setPresetId}
+        />
+      )}
+      {screen === 'weapon_select' && (
+        <WeaponSelectScreen
+          onSelect={(weaponId) => {
+            setStartWeapon(weaponId);
+            setScreen('game');
+          }}
         />
       )}
       {screen === 'game' && (
@@ -243,6 +255,7 @@ export default function App() {
           playerPhoto={playerPhoto}
           bodyColor={bodyColor}
           glowRgb={glowRgb}
+          startWeapon={startWeapon}
         />
       )}
     </GestureHandlerRootView>

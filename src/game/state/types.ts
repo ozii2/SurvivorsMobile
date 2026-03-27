@@ -15,7 +15,7 @@ export interface Entity {
   active: boolean;
 }
 
-export type WeaponId = 'dagger' | 'fireball' | 'whip';
+export type WeaponId = 'dagger' | 'fireball' | 'whip' | 'lightning';
 
 export interface WeaponInstance {
   id: WeaponId;
@@ -35,6 +35,8 @@ export interface PlayerEntity extends Entity {
   weapons: WeaponInstance[];
   magnetRadius: number;
   armor: number;
+  critChance: number;   // 0.0 – 1.0 (default 0)
+  lifesteal: number;    // HP per kill (default 0)
 }
 
 export type EnemyType = 'basic' | 'fast' | 'tank' | 'boss';
@@ -48,6 +50,7 @@ export interface EnemyEntity extends Entity {
   type: EnemyType;
   contactTimer: number; // prevents dealing damage every frame
   hitFlashTimer: number; // seconds remaining for white flash on hit
+  isElite: boolean;
 }
 
 export interface ProjectileEntity extends Entity {
@@ -97,7 +100,9 @@ export type UpgradeType =
   | 'max_hp'
   | 'speed'
   | 'armor'
-  | 'magnet';
+  | 'magnet'
+  | 'crit'
+  | 'lifesteal';
 
 export interface UpgradeOption {
   id: string;

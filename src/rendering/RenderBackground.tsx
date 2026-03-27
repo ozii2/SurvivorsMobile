@@ -2,6 +2,16 @@ import React, { useMemo } from 'react';
 import { Rect, Circle, Line, vec, LinearGradient } from '@shopify/react-native-skia';
 import { Vec2 } from '../game/state/types';
 
+// Nebula blobs: [worldX, worldY, radius, color]
+const NEBULAS: [number, number, number, string][] = [
+  [500,  500,  420, 'rgba(120,50,220,0.06)'],
+  [2500, 2400, 480, 'rgba(40,80,200,0.055)'],
+  [1500, 1500, 380, 'rgba(160,60,180,0.045)'],
+  [2800, 400,  320, 'rgba(40,180,200,0.04)'],
+  [300,  2600, 350, 'rgba(100,30,200,0.05)'],
+  [1800, 800,  260, 'rgba(80,160,220,0.04)'],
+];
+
 interface Props {
   worldOffset: Vec2;
   screenW: number;
@@ -24,6 +34,33 @@ const STARS = Array.from({ length: STAR_COUNT }, (_, i) => {
 });
 
 export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
+  // ── Static elements — only change when screen size changes ──────────────────
+  const staticBg = useMemo(() => (
+    <>
+      <Rect x={0} y={0} width={screenW} height={screenH}>
+        <LinearGradient
+          start={vec(0, 0)}
+          end={vec(screenW, screenH)}
+          colors={['#1a0b38', '#0f0a28', '#07060f']}
+        />
+      </Rect>
+      <Rect x={0} y={0} width={screenW} height={screenH}>
+        <LinearGradient
+          start={vec(0, 0)}
+          end={vec(0, screenH * 0.35)}
+          colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)']}
+        />
+      </Rect>
+      <Rect x={0} y={screenH * 0.65} width={screenW} height={screenH * 0.35}>
+        <LinearGradient
+          start={vec(0, screenH * 0.65)}
+          end={vec(0, screenH)}
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.50)']}
+        />
+      </Rect>
+    </>
+  ), [screenW, screenH]);
+
   // ── Grid lines — computed fresh each frame so they scroll smoothly ──────────
   const gridLines: React.ReactElement[] = [];
   const startX = Math.floor(worldOffset.x / GRID_SIZE) * GRID_SIZE;
@@ -43,6 +80,13 @@ export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
     );
   }
 
+  // ── Visible nebulas — culled to viewport ────────────────────────────────────
+  const visibleNebulas = NEBULAS.filter(([wx, wy, r]) => {
+    const sx = wx - worldOffset.x;
+    const sy = wy - worldOffset.y;
+    return sx + r > 0 && sx - r < screenW && sy + r > 0 && sy - r < screenH;
+  });
+
   // ── Visible stars — recalculate only when player moves 150px+ ───────────────
   const starTileX = Math.floor(worldOffset.x / 150);
   const starTileY = Math.floor(worldOffset.y / 150);
@@ -59,22 +103,19 @@ export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
 
   return (
     <>
-      {/* ── Base gradient: deep violet top → midnight blue → near-black ── */}
-      <Rect x={0} y={0} width={screenW} height={screenH}>
-        <LinearGradient
-          start={vec(0, 0)}
-          end={vec(screenW, screenH)}
-          colors={['#1a0b38', '#0f0a28', '#07060f']}
-        />
-      </Rect>
+      {/* ── Base gradient + vignette (static) ────────────────────────── */}
+      {staticBg}
 
-      {/* ── Nebula blobs — world-space, scroll with camera ───────────── */}
-      <Circle cx={500  - worldOffset.x} cy={500  - worldOffset.y} r={420} color="rgba(120,50,220,0.06)" />
-      <Circle cx={2500 - worldOffset.x} cy={2400 - worldOffset.y} r={480} color="rgba(40,80,200,0.055)" />
-      <Circle cx={1500 - worldOffset.x} cy={1500 - worldOffset.y} r={380} color="rgba(160,60,180,0.045)" />
-      <Circle cx={2800 - worldOffset.x} cy={400  - worldOffset.y} r={320} color="rgba(40,180,200,0.04)" />
-      <Circle cx={300  - worldOffset.x} cy={2600 - worldOffset.y} r={350} color="rgba(100,30,200,0.05)" />
-      <Circle cx={1800 - worldOffset.x} cy={800  - worldOffset.y} r={260} color="rgba(80,160,220,0.04)" />
+      {/* ── Nebula blobs — culled to viewport ────────────────────────── */}
+      {visibleNebulas.map(([wx, wy, r, color]) => (
+        <Circle
+          key={`${wx},${wy}`}
+          cx={wx - worldOffset.x}
+          cy={wy - worldOffset.y}
+          r={r}
+          color={color}
+        />
+      ))}
 
       {/* ── Grid ─────────────────────────────────────────────────────── */}
       {gridLines}
@@ -89,22 +130,6 @@ export function RenderBackground({ worldOffset, screenW, screenH }: Props) {
           color={s.color}
         />
       ))}
-
-      {/* ── Vignette: dark edges ──────────────────────────────────────── */}
-      <Rect x={0} y={0} width={screenW} height={screenH}>
-        <LinearGradient
-          start={vec(0, 0)}
-          end={vec(0, screenH * 0.35)}
-          colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0)']}
-        />
-      </Rect>
-      <Rect x={0} y={screenH * 0.65} width={screenW} height={screenH * 0.35}>
-        <LinearGradient
-          start={vec(0, screenH * 0.65)}
-          end={vec(0, screenH)}
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.50)']}
-        />
-      </Rect>
     </>
   );
 }

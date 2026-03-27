@@ -3,17 +3,27 @@ import { GameConfig, EnemyConfig } from '../config/GameConfig';
 import { spawnGem } from './XPGemSystem';
 import { spawnDeathParticles } from './ParticleSystem';
 
+// Module-level buffer — reused each frame, avoids per-call allocation
+const _activeEnemyBuf: number[] = [];
+
 export function tickCollisions(gs: GameState): void {
   const p = gs.player;
+
+  // Build compact active-enemy index: reduces inner loop from pool size to active count
+  _activeEnemyBuf.length = 0;
+  for (let ei = 0; ei < gs.enemies.length; ei++) {
+    if (gs.enemies[ei].active) _activeEnemyBuf.push(ei);
+  }
+  const aLen = _activeEnemyBuf.length;
 
   // ─── Projectile vs Enemy ───────────────────────────────────────────────────
   for (let pi = 0; pi < gs.projectiles.length; pi++) {
     const proj = gs.projectiles[pi];
     if (!proj.active) continue;
 
-    for (let ei = 0; ei < gs.enemies.length; ei++) {
-      const enemy = gs.enemies[ei];
-      if (!enemy.active) continue;
+    for (let ai = 0; ai < aLen; ai++) {
+      const enemy = gs.enemies[_activeEnemyBuf[ai]];
+      if (!enemy.active) continue; // may have been killed by earlier projectile this frame
       if (proj.hitEnemyIds.has(enemy.id)) continue;
 
       const dx = proj.position.x - enemy.position.x;
@@ -34,6 +44,9 @@ export function tickCollisions(gs: GameState): void {
           enemy.active = false;
           spawnGem(gs, enemy.position.x, enemy.position.y, enemy.xpValue);
           spawnDeathParticles(gs, enemy.position.x, enemy.position.y, cfg.color);
+          if (p.lifesteal > 0 && Math.random() < p.lifesteal) {
+            p.hp = Math.min(p.maxHp, p.hp + 1);
+          }
         }
       }
     }

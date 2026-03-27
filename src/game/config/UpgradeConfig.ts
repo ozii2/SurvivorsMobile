@@ -47,6 +47,22 @@ export const ALL_UPGRADES: UpgradeOption[] = [
     description: 'Kırbaç menzili ve hasarı artar.',
   },
 
+  // ─── Lightning weapon ──────────────────────────────────────────────────────
+  {
+    id: 'new_lightning',
+    type: 'weapon_new',
+    weaponId: 'lightning',
+    label: 'Şimşek',
+    description: 'En yakın düşmana anında şimşek çarpar.',
+  },
+  {
+    id: 'upgrade_lightning',
+    type: 'weapon_upgrade',
+    weaponId: 'lightning',
+    label: 'Şimşek +',
+    description: 'Şimşek hedef sayısı ve hasarı artar.',
+  },
+
   // ─── Passives ──────────────────────────────────────────────────────────────
   {
     id: 'max_hp',
@@ -71,6 +87,18 @@ export const ALL_UPGRADES: UpgradeOption[] = [
     type: 'magnet',
     label: 'Mıknatıs',
     description: 'XP taşı toplama menzili %50 artar.',
+  },
+  {
+    id: 'crit',
+    type: 'crit',
+    label: 'Kritik Vuruş',
+    description: '%15 şansla 2× hasar ver.',
+  },
+  {
+    id: 'lifesteal',
+    type: 'lifesteal',
+    label: 'Can Çalma',
+    description: 'Her öldürmede %25 ihtimalle 1 HP kazan (yığılabilir).',
   },
 ];
 

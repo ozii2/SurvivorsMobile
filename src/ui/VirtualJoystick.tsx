@@ -38,9 +38,14 @@ export function VirtualJoystick({ joystickX, joystickY }: Props) {
       joystickY.value = 0;
     });
 
-  const nubStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: nubX.value }, { translateY: nubY.value }],
-  }));
+  const nubStyle = useAnimatedStyle(() => {
+    const dist = Math.sqrt(nubX.value * nubX.value + nubY.value * nubY.value);
+    const intensity = 0.50 + 0.50 * (dist / MAX_DIST);
+    return {
+      opacity: intensity,
+      transform: [{ translateX: nubX.value }, { translateY: nubY.value }],
+    };
+  });
 
   return (
     <GestureDetector gesture={pan}>
@@ -56,9 +61,9 @@ const styles = StyleSheet.create({
     width: OUTER_R * 2,
     height: OUTER_R * 2,
     borderRadius: OUTER_R,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(79,195,247,0.08)',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(79,195,247,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -66,6 +71,8 @@ const styles = StyleSheet.create({
     width: INNER_R * 2,
     height: INNER_R * 2,
     borderRadius: INNER_R,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(79,195,247,0.65)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.55)',
   },
 });

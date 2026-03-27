@@ -12,7 +12,8 @@ export function spawnEnemy(
   gs: GameState,
   type: EnemyType,
   screenW: number,
-  screenH: number
+  screenH: number,
+  isElite = false
 ): void {
   const slot = findFreeSlot(gs.enemies);
   if (!slot) return;
@@ -31,13 +32,21 @@ export function spawnEnemy(
   slot.position.y = Math.max(0, Math.min(GameConfig.WORLD_HEIGHT, py));
   slot.velocity.x = 0;
   slot.velocity.y = 0;
-  slot.radius = cfg.radius;
-  slot.hp = cfg.hp;
-  slot.maxHp = cfg.hp;
-  slot.speed = cfg.speed;
-  slot.damage = cfg.damage;
-  slot.xpValue = cfg.xpValue;
+  slot.isElite = isElite;
+
+  const minute  = Math.floor(gs.gameTime / 60);
+  const timehp  = 1 + 0.05 * minute;
+  const timespd = 1 + 0.03 * minute;
+  const hpMult  = (isElite ? 2.5 : 1) * timehp;
+  const spdMult = (isElite ? 1.3 : 1) * timespd;
+  slot.radius  = isElite ? cfg.radius * 1.15 : cfg.radius;
+  slot.hp      = Math.round(cfg.hp    * hpMult);
+  slot.maxHp   = slot.hp;
+  slot.speed   = Math.round(cfg.speed * spdMult);
+  slot.damage  = cfg.damage;
+  slot.xpValue = isElite ? cfg.xpValue * 3 : cfg.xpValue;
   slot.contactTimer = 0;
+  slot.hitFlashTimer = 0;
   gs.idCounter++;
   slot.id = gs.idCounter;
 }

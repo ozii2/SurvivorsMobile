@@ -27,6 +27,7 @@ export function RenderParticles({ particles, worldOffset, screenW, screenH }: Pr
             sy < -CULL_PAD || sy > screenH + CULL_PAD) return null;
 
         const alpha = Math.max(0, p.lifetime / p.maxLifetime);
+        if (alpha < 0.05) return null; // skip near-invisible particles
         const color = `${p.color}${ALPHA_HEX[Math.floor(alpha * 255)]}`;
         return (
           <Circle

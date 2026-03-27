@@ -23,6 +23,7 @@ function makeEnemy(id: number): EnemyEntity {
     type: 'basic',
     contactTimer: 0,
     hitFlashTimer: 0,
+    isElite: false,
   };
 }
 
@@ -65,7 +66,7 @@ function makeGem(id: number): XPGemEntity {
   };
 }
 
-export function createInitialGameState(): GameState {
+export function createInitialGameState(startingWeaponId: string = 'dagger'): GameState {
   const player: PlayerEntity = {
     id: 0,
     active: true,
@@ -82,9 +83,11 @@ export function createInitialGameState(): GameState {
     level: 1,
     xpToNextLevel: GameConfig.XP_BASE,
     invincibleTimer: 0,
-    weapons: [{ id: 'dagger', level: 1, cooldownTimer: 0 }],
+    weapons: [{ id: startingWeaponId as import('./types').WeaponId, level: 1, cooldownTimer: 0 }],
     magnetRadius: GameConfig.PLAYER_MAGNET_RADIUS,
     armor: GameConfig.PLAYER_ARMOR,
+    critChance: 0,
+    lifesteal: 0,
   };
 
   return {
