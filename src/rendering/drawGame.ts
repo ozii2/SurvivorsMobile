@@ -6,6 +6,7 @@
  */
 import { SkCanvas } from '@shopify/react-native-skia';
 import { GameState, Vec2, EnemyEntity } from '../game/state/types';
+import { GarlicConfig } from '../game/config/GameConfig';
 import {
   Skia, TileMode,
   GRID_SIZE, NEBULAS, STARS,
@@ -17,17 +18,21 @@ import {
   daggerGlowPaint, daggerBladePaint,
   fireballRingPaint, fireballGlowPaint, fireballBodyPaint, fireballCorePaint,
   whipGlowPaint, whipBodyPaint,
+  crossGlowPaint, crossBarPaint, crossCorePaint,
+  garlicAuraFillPaint, garlicAuraRingPaint, garlicAuraInnerPaint,
   fallbackGlowPaint, fallbackBodyPaint,
   gemGlowPaint, gemBodyPaint, gemCorePaint,
   playerGlowOutPaint, playerGlowMidPaint, playerGlowInPaint,
   playerBodyPaint, playerShadowPaint,
   particlePaint,
+  dmgNumNormalPaint, dmgNumCritPaint, dmgNumBigPaint,
+  comboTextPaint, announceTextPaint, announceBgPaint,
   hudHPGlowPaint, hudHPTrackPaint, hudHPFillPaint,
   hudXPGlowPaint, hudXPTrackPaint, hudXPFillPaint,
   hudTextPaint, hudBossTextPaint,
   hudBossBgPaint, hudBossBarBgPaint, hudBossBarFillPaint,
   nearDeathPaint,
-  FONT, BOSS_FONT,
+  FONT, BOSS_FONT, DAMAGE_FONT, DAMAGE_FONT_CRIT, COMBO_FONT, ANNOUNCE_FONT,
 } from './GamePaints';
 
 const RAD2DEG = 180 / Math.PI;
@@ -45,11 +50,14 @@ export function drawFrame(
 ): void {
   drawBackground(canvas, worldOffset, screenW, screenH);
   drawXPGems(canvas, gs, worldOffset, screenW, screenH);
+  drawChests(canvas, gs, worldOffset, screenW, screenH);
   drawEnemies(canvas, gs, worldOffset, screenW, screenH);
   drawProjectiles(canvas, gs, worldOffset, screenW, screenH);
   drawParticles(canvas, gs, worldOffset, screenW, screenH);
   drawPlayer(canvas, gs, worldOffset, bodyColor, glowRgb);
+  drawDamageNumbers(canvas, gs, worldOffset, screenW, screenH);
   drawHUD(canvas, gs, screenW, screenH);
+  drawWaveAnnounce(canvas, gs, screenW, screenH);
 }
 
 // ── Background ────────────────────────────────────────────────────────────────
@@ -290,6 +298,19 @@ function drawProjectiles(
       canvas.drawRect(Skia.XYWHRect(wx, sy - 3, ww, 6), whipBodyPaint);
       whipBodyPaint.setShader(null);
 
+    } else if (p.weaponId === 'cross') {
+      const bar = p.radius;
+      const angleDeg = gameTime * 1.2 * RAD2DEG;
+      canvas.save();
+      canvas.rotate(angleDeg, sx, sy);
+      canvas.drawCircle(sx, sy, bar * 2.4, crossGlowPaint);
+      // horizontal bar
+      canvas.drawRect(Skia.XYWHRect(sx - bar * 2, sy - bar * 0.45, bar * 4, bar * 0.9), crossBarPaint);
+      // vertical bar
+      canvas.drawRect(Skia.XYWHRect(sx - bar * 0.45, sy - bar * 2, bar * 0.9, bar * 4), crossBarPaint);
+      canvas.drawCircle(sx, sy, bar * 0.5, crossCorePaint);
+      canvas.restore();
+
     } else {
       canvas.drawCircle(sx, sy, p.radius * 2.2, fallbackGlowPaint);
       canvas.drawCircle(sx, sy, p.radius, fallbackBodyPaint);
@@ -340,6 +361,17 @@ function drawPlayer(
   const flash = player.invincibleTimer > 0 &&
     Math.floor(player.invincibleTimer * 10) % 2 === 0;
 
+  // Garlic aura (rendered behind player glow)
+  const garlicWeapon = player.weapons.find(w => w.id === 'garlic');
+  if (garlicWeapon) {
+    const level = Math.min(garlicWeapon.level, 8) as keyof typeof GarlicConfig;
+    const baseR = GarlicConfig[level].radius;
+    const auraR = baseR + Math.sin(gs.gameTime * 3.5) * baseR * 0.05;
+    canvas.drawCircle(sx, sy, auraR, garlicAuraFillPaint);
+    canvas.drawCircle(sx, sy, auraR, garlicAuraRingPaint);
+    canvas.drawCircle(sx, sy, auraR * 0.85, garlicAuraInnerPaint);
+  }
+
   const gr = glowRgb ?? '79,195,247';
   playerGlowOutPaint.setColor(Skia.Color(`rgba(${gr},0.05)`));
   canvas.drawCircle(sx, sy, r * 2.8, playerGlowOutPaint);
@@ -354,6 +386,80 @@ function drawPlayer(
 
   playerBodyPaint.setColor(flash ? HIT_FLASH_COL : Skia.Color(bodyColor ?? '#4fc3f7'));
   canvas.drawCircle(sx, sy, r, playerBodyPaint);
+}
+
+// ── Damage Numbers ────────────────────────────────────────────────────────────
+
+function drawDamageNumbers(
+  canvas: SkCanvas,
+  gs: GameState,
+  worldOffset: Vec2,
+  screenW: number,
+  screenH: number,
+): void {
+  const pool = gs.damageNumbers;
+  for (let i = 0; i < pool.length; i++) {
+    const dn = pool[i];
+    if (!dn.active) continue;
+    const progress = 1 - dn.lifetime / dn.maxLifetime;
+    const sx = dn.x - worldOffset.x;
+    const sy = dn.y - worldOffset.y - progress * 32;
+    if (sx < -20 || sx > screenW + 20 || sy < -20 || sy > screenH + 20) continue;
+
+    const alpha = Math.max(0, dn.lifetime / dn.maxLifetime);
+    const label = String(dn.value);
+
+    if (dn.value >= 50) {
+      dmgNumBigPaint.setAlphaf(alpha);
+      if (DAMAGE_FONT_CRIT) canvas.drawText(label, sx - label.length * 4, sy, dmgNumBigPaint, DAMAGE_FONT_CRIT);
+    } else if (dn.isCrit) {
+      dmgNumCritPaint.setAlphaf(alpha);
+      if (DAMAGE_FONT_CRIT) canvas.drawText(label, sx - label.length * 4, sy, dmgNumCritPaint, DAMAGE_FONT_CRIT);
+    } else {
+      dmgNumNormalPaint.setAlphaf(alpha);
+      if (DAMAGE_FONT) canvas.drawText(label, sx - label.length * 3, sy, dmgNumNormalPaint, DAMAGE_FONT);
+    }
+  }
+  // Reset alpha
+  dmgNumBigPaint.setAlphaf(1);
+  dmgNumCritPaint.setAlphaf(1);
+  dmgNumNormalPaint.setAlphaf(1);
+}
+
+// ── Wave Announce ─────────────────────────────────────────────────────────────
+
+function drawWaveAnnounce(
+  canvas: SkCanvas,
+  gs: GameState,
+  screenW: number,
+  screenH: number,
+): void {
+  if (gs.waveAnnounceTimer <= 0 || !gs.waveAnnounceText) return;
+
+  const t = gs.waveAnnounceTimer;
+  // fade-in first 0.3s, hold, fade-out last 0.3s
+  let alpha: number;
+  if (t > 1.7) alpha = (2.0 - t) / 0.3;
+  else if (t < 0.3) alpha = t / 0.3;
+  else alpha = 1.0;
+  alpha = Math.max(0, Math.min(1, alpha));
+
+  const text = gs.waveAnnounceText;
+  const cx = screenW / 2;
+  const cy = screenH * 0.38;
+
+  // Background pill
+  announceBgPaint.setAlphaf(alpha * 0.85);
+  canvas.drawRect(Skia.XYWHRect(cx - 160, cy - 28, 320, 44), announceBgPaint);
+
+  // Text
+  announceTextPaint.setColor(Skia.Color(gs.waveAnnounceColor));
+  announceTextPaint.setAlphaf(alpha);
+  if (ANNOUNCE_FONT) {
+    canvas.drawText(text, cx - text.length * 7.5, cy, announceTextPaint, ANNOUNCE_FONT);
+  }
+  announceBgPaint.setAlphaf(1);
+  announceTextPaint.setAlphaf(1);
 }
 
 // ── HUD ───────────────────────────────────────────────────────────────────────
@@ -401,6 +507,18 @@ function drawHUD(
   if (FONT) {
     canvas.drawText(`${minutes}:${seconds}`, screenW / 2 - 24, 50, hudTextPaint, FONT);
     canvas.drawText(`Lv ${player.level}`, 20, 55, hudTextPaint, FONT);
+  }
+
+  // ── Combo counter ──
+  if (gs.killCombo >= 2 && COMBO_FONT) {
+    const combo = gs.killCombo;
+    const color = combo >= 50 ? '#ff2222'
+      : combo >= 25 ? '#ff8833'
+      : combo >= 10 ? '#FFD700'
+      : '#ffffff';
+    comboTextPaint.setColor(Skia.Color(color));
+    const label = `x${combo} COMBO`;
+    canvas.drawText(label, screenW - label.length * 8 - 10, 50, comboTextPaint, COMBO_FONT);
   }
 
   // ── Near-death vignette ──
@@ -466,4 +584,38 @@ function _drawNearDeathVignette(canvas: SkCanvas, screenW: number, screenH: numb
   canvas.drawRect(Skia.XYWHRect(screenW * 0.82, 0, screenW * 0.18, screenH), nearDeathPaint);
 
   nearDeathPaint.setShader(null);
+}
+
+// ── Chests ───────────────────────────────────────────────────────────────────
+
+function drawChests(
+  canvas: SkCanvas,
+  gs: GameState,
+  worldOffset: Vec2,
+  screenW: number,
+  screenH: number,
+): void {
+  for (let i = 0; i < gs.chests.length; i++) {
+    const chest = gs.chests[i];
+    if (!chest.active) continue;
+
+    const sx = chest.position.x - worldOffset.x;
+    const sy = chest.position.y - worldOffset.y;
+    if (sx < -40 || sx > screenW + 40 || sy < -40 || sy > screenH + 40) continue;
+
+    const size = chest.fromBoss ? 22 : 16;
+    const glowSize = size + 8;
+
+    // Glow ring
+    enemyGlowPaint.setColor(Skia.Color(chest.fromBoss ? 'rgba(255,200,0,0.35)' : 'rgba(200,180,0,0.25)'));
+    canvas.drawCircle(sx, sy, glowSize, enemyGlowPaint);
+
+    // Chest body (golden rectangle)
+    enemyBodyPaint.setColor(Skia.Color(chest.fromBoss ? '#ffd700' : '#cc9900'));
+    canvas.drawRect(Skia.XYWHRect(sx - size / 2, sy - size / 2, size, size), enemyBodyPaint);
+
+    // Lid highlight
+    highlightPaint.setColor(Skia.Color('rgba(255,255,200,0.5)'));
+    canvas.drawRect(Skia.XYWHRect(sx - size / 2, sy - size / 2, size, size / 3), highlightPaint);
+  }
 }

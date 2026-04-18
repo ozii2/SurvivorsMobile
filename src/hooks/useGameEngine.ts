@@ -1,13 +1,13 @@
 import { useRef, useCallback } from 'react';
 import { useSharedValue } from 'react-native-reanimated';
-import { GameState, UpgradeOption } from '../game/state/types';
+import { GameState, UpgradeOption, CharacterId } from '../game/state/types';
 import { createInitialGameState } from '../game/state/GameState';
 import { applyUpgrade } from '../game/systems/UpgradeSystem';
 import { resetWaveAccumulators } from '../game/systems/WaveSystem';
 import { useGameStore } from '../game/state/useGameStore';
 
-export function useGameEngine(startingWeaponId = 'dagger') {
-  const gameStateRef = useRef<GameState>(createInitialGameState(startingWeaponId));
+export function useGameEngine(characterId: CharacterId = 'warrior') {
+  const gameStateRef = useRef<GameState>(createInitialGameState(characterId));
   const joystickX = useSharedValue(0);
   const joystickY = useSharedValue(0);
 
@@ -36,9 +36,9 @@ export function useGameEngine(startingWeaponId = 'dagger') {
 
   const restartGame = useCallback(() => {
     resetWaveAccumulators();
-    gameStateRef.current = createInitialGameState(startingWeaponId);
+    gameStateRef.current = createInitialGameState(characterId);
     resetGame();
-  }, [resetGame, startingWeaponId]);
+  }, [resetGame, characterId]);
 
   return {
     gameStateRef,

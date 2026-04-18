@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,27 @@ import { GameCanvas } from './src/rendering/GameCanvas';
 import { VirtualJoystick } from './src/ui/VirtualJoystick';
 import { LevelUpModal } from './src/ui/LevelUpModal';
 import { HUDOverlay } from './src/ui/HUDOverlay';
-import { WeaponSelectScreen } from './src/ui/WeaponSelectScreen';
+import { SettingsModal } from './src/ui/SettingsModal';
+import { PostGameStats } from './src/ui/PostGameStats';
+import { TutorialOverlay } from './src/ui/TutorialOverlay';
+import { CharacterSelectScreen } from './src/ui/CharacterSelectScreen';
 import { useGameEngine } from './src/hooks/useGameEngine';
 import { useGameStore } from './src/game/state/useGameStore';
-import { UpgradeOption } from './src/game/state/types';
+import { useSaveStore } from './src/game/state/useSaveStore';
+import { useSettingsStore } from './src/game/state/useSettingsStore';
+import { UpgradeOption, CharacterId } from './src/game/state/types';
+import {
+  initAudio, playBgMusic, stopBgMusic, pauseBgMusic, resumeBgMusic,
+  playSfxHit, playSfxLevelUp, setSoundEnabled, setMusicEnabled,
+  hapticSuccess, hapticSelection,
+} from './src/services/AudioService';
+import { checkAchievements } from './src/services/AchievementService';
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 // ─── Game Screen ─────────────────────────────────────────────────────────────
 
@@ -28,13 +45,13 @@ function GameScreen({
   playerPhoto,
   bodyColor,
   glowRgb,
-  startWeapon,
+  startCharacter,
 }: {
   onExit: () => void;
   playerPhoto: string | null;
   bodyColor: string;
   glowRgb: string;
-  startWeapon: string;
+  startCharacter: CharacterId;
 }) {
   useKeepAwake();
   const { width, height } = useWindowDimensions();
@@ -43,18 +60,78 @@ function GameScreen({
     joystickX,
     joystickY,
     handleLevelUp,
-    chooseUpgrade,
+    chooseUpgrade: _chooseUpgrade,
     pauseGame,
     restartGame,
-  } = useGameEngine(startWeapon);
+  } = useGameEngine(startCharacter);
+
+  const chooseUpgrade = useCallback((choice: UpgradeOption) => {
+    hapticSelection();
+    playSfxLevelUp();
+    _chooseUpgrade(choice);
+  }, [_chooseUpgrade]);
 
   const pendingChoices = useGameStore(s => s.pendingUpgradeChoices);
   const isGameOver = useGameStore(s => s.isGameOver);
   const isPaused = useGameStore(s => s.isPaused);
   const level = useGameStore(s => s.level);
+  const waveNumber = useGameStore(s => s.waveNumber);
+  const gameTime = useGameStore(s => s.gameTime);
+  const maxComboFromStore = useGameStore(s => s.maxComboThisRun);
+  const hp = useGameStore(s => s.hp);
+  const recordGame = useSaveStore(s => s.recordGame);
+  const unlockAchievements = useSaveStore(s => s.unlockAchievements);
+  const saveData = useSaveStore(s => s);
+  const tutorialCompleted = useSaveStore(s => s.tutorialCompleted);
+  const isLoaded = useSaveStore(s => s.isLoaded);
+
+  const [runAchievements, setRunAchievements] = useState<string[]>([]);
+  const soundOn = useSettingsStore(s => s.soundEnabled);
+  const musicOn = useSettingsStore(s => s.musicEnabled);
+
+  const showTutorial = isLoaded && !tutorialCompleted;
+
+  // Sync audio settings
+  useEffect(() => { setSoundEnabled(soundOn); }, [soundOn]);
+  useEffect(() => { setMusicEnabled(musicOn); }, [musicOn]);
+
+  // Start music on mount, stop on unmount
+  useEffect(() => {
+    playBgMusic();
+    return () => { stopBgMusic(); };
+  }, []);
+
+  // Pause/resume music with game pause
+  useEffect(() => {
+    if (isPaused) pauseBgMusic();
+    else resumeBgMusic();
+  }, [isPaused]);
+
+  // Hit sound on HP decrease
+  const prevHpRef = React.useRef(hp);
+  useEffect(() => {
+    if (hp < prevHpRef.current && !isGameOver) playSfxHit();
+    prevHpRef.current = hp;
+  }, [hp, isGameOver]);
+
+  // Save stats + check achievements on game over
+  useEffect(() => {
+    if (isGameOver) {
+      recordGame(waveNumber, gameTime);
+      const gs = gameStateRef.current;
+      const newAchievements = checkAchievements(gs, saveData);
+      if (newAchievements.length > 0) {
+        unlockAchievements(newAchievements);
+        setRunAchievements(newAchievements);
+      } else {
+        setRunAchievements([]);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGameOver]);
 
   const handleGameOver = useCallback(() => {
-    // State already updated via Zustand sync
+    // Zustand sync zaten game over state'ini güncelledi; overlay buna göre gösterilir
   }, []);
 
   const handleRestart = useCallback(() => {
@@ -84,6 +161,11 @@ function GameScreen({
       {/* HUD overlay (pause button & wave counter) */}
       <HUDOverlay onPause={pauseGame} />
 
+      {/* Tutorial — sadece ilk oyunda gösterilir */}
+      {showTutorial && (
+        <TutorialOverlay onDone={() => {}} />
+      )}
+
       {/* Level-up modal */}
       <LevelUpModal
         visible={pendingChoices.length > 0}
@@ -111,7 +193,13 @@ function GameScreen({
       {isGameOver && (
         <View style={styles.overlay}>
           <Text style={[styles.overlayTitle, { color: '#ff4444' }]}>ÖLDÜN</Text>
-          <Text style={styles.overlaySubtitle}>Seviye {level}</Text>
+          <PostGameStats
+            wave={waveNumber}
+            time={gameTime}
+            level={level}
+            maxCombo={maxComboFromStore}
+            newAchievements={runAchievements}
+          />
           <TouchableOpacity style={styles.btn} onPress={handleRestart}>
             <Text style={styles.btnText}>Tekrar Oyna</Text>
           </TouchableOpacity>
@@ -150,6 +238,10 @@ function MenuScreen({
   onPhotoChange: (uri: string | null) => void;
   onPresetChange: (id: string) => void;
 }) {
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const highestWave = useSaveStore(s => s.highestWave);
+  const totalGames = useSaveStore(s => s.totalGames);
+
   const pickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
@@ -165,13 +257,29 @@ function MenuScreen({
   }, [onPhotoChange]);
 
   const selectPreset = useCallback((id: string) => {
-    onPhotoChange(null);   // fotoğraf modunu kapat
+    onPhotoChange(null);
     onPresetChange(id);
   }, [onPhotoChange, onPresetChange]);
 
   return (
     <View style={styles.menuContainer}>
+      {/* Settings button */}
+      <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsVisible(true)}>
+        <Text style={styles.settingsBtnText}>⚙</Text>
+      </TouchableOpacity>
+
+      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+
       <Text style={styles.gameTitle}>VAMPIRE{'\n'}SURVIVORS</Text>
+
+      {/* Player stats */}
+      {totalGames > 0 && (
+        <View style={styles.menuStatsRow}>
+          <Text style={styles.menuStatText}>En Yüksek Dalga: <Text style={styles.menuStatValue}>{highestWave}</Text></Text>
+          <Text style={styles.menuStatSep}>|</Text>
+          <Text style={styles.menuStatText}>Toplam Oyun: <Text style={styles.menuStatValue}>{totalGames}</Text></Text>
+        </View>
+      )}
 
       <Text style={styles.sectionLabel}>Oyuncu Seç</Text>
 
@@ -220,10 +328,26 @@ function MenuScreen({
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState<'menu' | 'weapon_select' | 'game'>('menu');
+  const [screen, setScreen] = useState<'menu' | 'char_select' | 'game'>('menu');
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
   const [presetId, setPresetId] = useState('blue');
-  const [startWeapon, setStartWeapon] = useState('dagger');
+  const [startCharacter, setStartCharacter] = useState<CharacterId>('warrior');
+
+  const loadSave = useSaveStore(s => s.load);
+  const loadSettings = useSettingsStore(s => s.load);
+  const soundOn = useSettingsStore(s => s.soundEnabled);
+  const musicOn = useSettingsStore(s => s.musicEnabled);
+
+  useEffect(() => {
+    async function boot() {
+      await loadSettings();
+      await loadSave();
+      await initAudio({ soundEnabled: soundOn, musicEnabled: musicOn });
+    }
+    boot();
+  // loadSettings/loadSave are stable Zustand actions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const preset = PLAYER_PRESETS.find(p => p.id === presetId) ?? PLAYER_PRESETS[0];
   const bodyColor = preset.color;
@@ -234,17 +358,17 @@ export default function App() {
       <StatusBar hidden={true} translucent={true} />
       {screen === 'menu' && (
         <MenuScreen
-          onStart={() => setScreen('weapon_select')}
+          onStart={() => setScreen('char_select')}
           playerPhoto={playerPhoto}
           presetId={presetId}
           onPhotoChange={setPlayerPhoto}
           onPresetChange={setPresetId}
         />
       )}
-      {screen === 'weapon_select' && (
-        <WeaponSelectScreen
-          onSelect={(weaponId) => {
-            setStartWeapon(weaponId);
+      {screen === 'char_select' && (
+        <CharacterSelectScreen
+          onSelect={(charId) => {
+            setStartCharacter(charId);
             setScreen('game');
           }}
         />
@@ -255,7 +379,7 @@ export default function App() {
           playerPhoto={playerPhoto}
           bodyColor={bodyColor}
           glowRgb={glowRgb}
-          startWeapon={startWeapon}
+          startCharacter={startCharacter}
         />
       )}
     </GestureHandlerRootView>
@@ -376,6 +500,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 1,
     marginBottom: 4,
+  },
+  settingsBtn: {
+    position: 'absolute',
+    top: 52,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#3a3a6c',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsBtnText: {
+    fontSize: 20,
+  },
+  menuStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4,
+  },
+  menuStatText: {
+    color: '#8888bb',
+    fontSize: 13,
+  },
+  menuStatValue: {
+    color: '#ffe066',
+    fontWeight: '700',
+  },
+  menuStatSep: {
+    color: '#3a3a6c',
+    fontSize: 16,
   },
   presetRow: {
     flexDirection: 'row',

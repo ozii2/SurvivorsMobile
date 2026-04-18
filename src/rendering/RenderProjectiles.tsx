@@ -80,6 +80,32 @@ export function RenderProjectiles({ projectiles, worldOffset, screenW, screenH, 
           );
         }
 
+        // ── Cross: 4-bar golden plus sign ─────────────────────────────────────
+        if (proj.weaponId === 'cross') {
+          const rot = gameTime * 1.2; // slow rotation
+          const bar = proj.radius;
+          return (
+            <Group key={proj.id} transform={[{ rotate: rot }]} origin={{ x: sx, y: sy }}>
+              {/* Glow */}
+              <Circle cx={sx} cy={sy} r={proj.radius * 2.4} color="rgba(255,220,80,0.18)" />
+              {/* Horizontal bar */}
+              <RoundedRect
+                x={sx - bar * 2} y={sy - bar * 0.45}
+                width={bar * 4} height={bar * 0.9} r={bar * 0.4}
+                color="#FFD700"
+              />
+              {/* Vertical bar */}
+              <RoundedRect
+                x={sx - bar * 0.45} y={sy - bar * 2}
+                width={bar * 0.9} height={bar * 4} r={bar * 0.4}
+                color="#FFD700"
+              />
+              {/* Bright center */}
+              <Circle cx={sx} cy={sy} r={bar * 0.5} color="#fffacc" />
+            </Group>
+          );
+        }
+
         // ── Fallback ──────────────────────────────────────────────────────────
         return (
           <React.Fragment key={proj.id}>

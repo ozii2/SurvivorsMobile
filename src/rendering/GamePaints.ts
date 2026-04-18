@@ -7,21 +7,29 @@
 import { Skia, PaintStyle, TileMode, matchFont } from '@shopify/react-native-skia';
 
 // ── Fonts ────────────────────────────────────────────────────────────────────
-export const FONT      = matchFont({ fontFamily: 'System', fontSize: 13 });
-export const BOSS_FONT = matchFont({ fontFamily: 'System', fontSize: 12 });
+export const FONT           = matchFont({ fontFamily: 'System', fontSize: 13 });
+export const BOSS_FONT      = matchFont({ fontFamily: 'System', fontSize: 12 });
+export const DAMAGE_FONT    = matchFont({ fontFamily: 'System', fontSize: 11 });
+export const DAMAGE_FONT_CRIT = matchFont({ fontFamily: 'System', fontSize: 14 });
+export const COMBO_FONT     = matchFont({ fontFamily: 'System', fontSize: 15 });
+export const ANNOUNCE_FONT  = matchFont({ fontFamily: 'System', fontSize: 26 });
 
 // ── Pre-parsed enemy colors (SkColor = Float32Array, parsed once) ─────────────
 export const ENEMY_GLOW_COLS: Record<string, Float32Array> = {
-  basic: Skia.Color('rgba(255,60,60,0.20)'),
-  fast:  Skia.Color('rgba(255,160,40,0.22)'),
-  tank:  Skia.Color('rgba(160,60,220,0.22)'),
-  boss:  Skia.Color('rgba(255,30,30,0.28)'),
+  basic:     Skia.Color('rgba(255,60,60,0.20)'),
+  fast:      Skia.Color('rgba(255,160,40,0.22)'),
+  tank:      Skia.Color('rgba(160,60,220,0.22)'),
+  boss:      Skia.Color('rgba(255,30,30,0.28)'),
+  swarm:     Skia.Color('rgba(80,255,40,0.22)'),
+  explosive: Skia.Color('rgba(255,120,0,0.28)'),
 };
 export const ENEMY_BODY_COLS: Record<string, Float32Array> = {
-  basic: Skia.Color('#e05050'),
-  fast:  Skia.Color('#e0a030'),
-  tank:  Skia.Color('#9040c0'),
-  boss:  Skia.Color('#ff2020'),
+  basic:     Skia.Color('#e05050'),
+  fast:      Skia.Color('#e0a030'),
+  tank:      Skia.Color('#9040c0'),
+  boss:      Skia.Color('#ff2020'),
+  swarm:     Skia.Color('#55ff33'),
+  explosive: Skia.Color('#ff7700'),
 };
 export const HIT_FLASH_COL  = Skia.Color('#ffffff');
 export const HIGHLIGHT_COL  = Skia.Color('rgba(255,255,255,0.18)');
@@ -75,6 +83,9 @@ export const fireballBodyPaint = _fill('#ff8820');
 export const fireballCorePaint = _fill('#ffcc66');
 export const whipGlowPaint     = _fill('rgba(200,100,255,0.15)');
 export const whipBodyPaint     = _fill();  // setShader per whip draw
+export const crossGlowPaint    = _fill('rgba(255,220,80,0.18)');
+export const crossBarPaint     = _fill('#FFD700');
+export const crossCorePaint    = _fill('#fffacc');
 export const fallbackGlowPaint = _fill('rgba(255,255,255,0.15)');
 export const fallbackBodyPaint = _fill('#ffffff');
 
@@ -83,12 +94,27 @@ export const gemGlowPaint = _fill();  // setColor per gem
 export const gemBodyPaint = _fill();  // setColor per gem
 export const gemCorePaint = _fill('rgba(255,255,255,0.55)');
 
+// ── Garlic aura paints ────────────────────────────────────────────────────────
+export const garlicAuraFillPaint = _fill('rgba(120,255,60,0.06)');
+export const garlicAuraRingPaint = _stroke('rgba(120,255,60,0.40)', 1.5);
+export const garlicAuraInnerPaint = _fill('rgba(80,220,40,0.04)');
+
 // ── Player paints ─────────────────────────────────────────────────────────────
 export const playerGlowOutPaint = _fill();  // setColor from glowRgb
 export const playerGlowMidPaint = _fill();
 export const playerGlowInPaint  = _fill();
 export const playerBodyPaint    = _fill();  // setColor (flash or bodyColor)
 export const playerShadowPaint  = _fill('rgba(0,0,0,0.35)');
+
+// ── Damage number paints ──────────────────────────────────────────────────────
+export const dmgNumNormalPaint = _fill('#ffffff');
+export const dmgNumCritPaint   = _fill('#FFD700');
+export const dmgNumBigPaint    = _fill('#ff5555');
+
+// ── Combo + wave announce paints ──────────────────────────────────────────────
+export const comboTextPaint    = _fill('#ffffff');  // setColor dynamically
+export const announceTextPaint = _fill('#ffffff');  // setColor + setAlphaf dynamically
+export const announceBgPaint   = _fill('rgba(0,0,0,0.45)');
 
 // ── Particle paint ────────────────────────────────────────────────────────────
 export const particlePaint = _fill();  // setColor + setAlphaf per particle

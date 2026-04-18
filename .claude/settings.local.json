@@ -6,7 +6,11 @@
       "Bash(grep:*)",
       "Bash(xargs cat:*)",
       "Bash(head -5 echo \"---\" grep \"PaintStyle\\\\|TileMode\" /mnt/c/Users/Dell/Desktop/MyGame/node_modules/@shopify/react-native-skia/lib/commonjs/skia/types/ImageFilter/ImageFilter.js)",
-      "Bash(head -5 grep \"from.*Paint\\\\|from.*ImageFilter\" /mnt/c/Users/Dell/Desktop/MyGame/node_modules/@shopify/react-native-skia/lib/commonjs/skia/types/index.d.ts)"
+      "Bash(head -5 grep \"from.*Paint\\\\|from.*ImageFilter\" /mnt/c/Users/Dell/Desktop/MyGame/node_modules/@shopify/react-native-skia/lib/commonjs/skia/types/index.d.ts)",
+      "Skill(sprint-plan)",
+      "Bash(npx expo *)",
+      "Bash(npm install *)",
+      "Bash(eas --version)"
     ]
   }
 }

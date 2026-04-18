@@ -11,10 +11,12 @@ import { tickEnemies } from '../game/systems/EnemySystem';
 import { tickProjectiles } from '../game/systems/ProjectileSystem';
 import { tickXPGems } from '../game/systems/XPGemSystem';
 import { tickParticles } from '../game/systems/ParticleSystem';
+import { tickDamageNumbers } from '../game/systems/DamageNumberSystem';
 import { tickCollisions } from '../game/systems/CollisionSystem';
 import { tickWaves } from '../game/systems/WaveSystem';
 import { tickWeapons } from '../game/systems/WeaponSystem';
-import { generateUpgradeChoices } from '../game/systems/UpgradeSystem';
+import { generateUpgradeChoices, generateChestChoices } from '../game/systems/UpgradeSystem';
+import { tickChests } from '../game/systems/ChestSystem';
 import { useGameStore } from '../game/state/useGameStore';
 import { drawFrame } from './drawGame';
 
@@ -84,12 +86,14 @@ export function GameCanvas({
       tickProjectiles(gs, step);
       tickXPGems(gs, step);
       tickParticles(gs, step);
+      tickDamageNumbers(gs, step);
       tickCollisions(gs);
+      tickChests(gs, step);
       if (gs.shakeTimer > 0) gs.shakeTimer -= step;
 
       accumulator.current -= step;
 
-      if (gs.isGameOver || gs.pendingLevelUp) {
+      if (gs.isGameOver || gs.pendingLevelUp || gs.pendingChestOpen) {
         accumulator.current = 0;
         break;
       }
@@ -124,6 +128,13 @@ export function GameCanvas({
         gs.pendingLevelUp = false;
         gs.isPaused = true;
         const choices = generateUpgradeChoices(gs);
+        setUpgradeChoices(choices);
+        onLevelUp(choices);
+      }
+
+      if (gs.pendingChestOpen) {
+        gs.pendingChestOpen = false;
+        const choices = generateChestChoices(gs);
         setUpgradeChoices(choices);
         onLevelUp(choices);
       }

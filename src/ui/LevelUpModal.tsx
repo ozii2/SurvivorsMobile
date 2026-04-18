@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { UpgradeOption, UpgradeType } from '../game/state/types';
+import { playSfxLevelUp, hapticSuccess } from '../services/AudioService';
 
 interface Props {
   visible: boolean;
@@ -29,6 +30,8 @@ const UPGRADE_STYLE: Record<UpgradeType, { icon: string; color: string }> = {
   magnet:         { icon: '🧲',  color: '#26C6DA' },
   crit:           { icon: '💥',  color: '#FF9800' },
   lifesteal:      { icon: '🩸',  color: '#E91E63' },
+  passive_item:   { icon: '💠',  color: '#7B68EE' },
+  weapon_evolve:  { icon: '✨',  color: '#FFD700' },
 };
 
 export function LevelUpModal({ visible, choices, onChoose }: Props) {
@@ -39,6 +42,8 @@ export function LevelUpModal({ visible, choices, onChoose }: Props) {
     if (visible) {
       translateY.value = withSpring(0, { damping: 15, stiffness: 120 });
       opacity.value = withTiming(1, { duration: 180 });
+      playSfxLevelUp();
+      hapticSuccess();
     } else {
       translateY.value = 60;
       opacity.value = 0;
@@ -54,8 +59,17 @@ export function LevelUpModal({ visible, choices, onChoose }: Props) {
     <Modal visible={visible} transparent animationType="none">
       <View style={styles.overlay}>
         <Animated.View style={[styles.container, animStyle]}>
-          <Text style={styles.title}>SEVİYE ATLADI!</Text>
-          <Text style={styles.subtitle}>Bir yetenek seç:</Text>
+          {choices.length === 1 && choices[0]?.type === 'weapon_evolve' ? (
+            <>
+              <Text style={[styles.title, { color: '#FFD700' }]}>EVRİM!</Text>
+              <Text style={styles.subtitle}>Silahın dönüşüme hazır:</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>SEVİYE ATLADI!</Text>
+              <Text style={styles.subtitle}>Bir yetenek seç:</Text>
+            </>
+          )}
           {choices.map(choice => {
             const style = UPGRADE_STYLE[choice.type] ?? { icon: '✨', color: '#ffffff' };
             return (

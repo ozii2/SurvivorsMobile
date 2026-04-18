@@ -14,10 +14,12 @@ interface Props {
 
 // Pre-parsed glow colors — neon cyberpunk palette
 const GLOW_COLORS: Record<string, string> = {
-  basic: 'rgba(255,60,60,0.20)',
-  fast:  'rgba(255,160,40,0.22)',
-  tank:  'rgba(160,60,220,0.22)',
-  boss:  'rgba(255,30,30,0.28)',
+  basic:     'rgba(255,60,60,0.20)',
+  fast:      'rgba(255,160,40,0.22)',
+  tank:      'rgba(160,60,220,0.22)',
+  boss:      'rgba(255,30,30,0.28)',
+  swarm:     'rgba(80,255,40,0.22)',
+  explosive: 'rgba(255,120,0,0.28)',
 };
 
 export function RenderEnemies({ enemies, worldOffset, screenW, screenH, gameTime, activeEnemyCount }: Props) {

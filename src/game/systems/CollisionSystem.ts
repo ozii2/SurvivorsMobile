@@ -1,15 +1,68 @@
-import { GameState } from '../state/types';
-import { GameConfig, EnemyConfig } from '../config/GameConfig';
+import { GameState, EnemyEntity } from '../state/types';
+import { GameConfig, EnemyConfig, EXPLOSIVE_AOE_RADIUS, EXPLOSIVE_AOE_DAMAGE } from '../config/GameConfig';
 import { spawnGem } from './XPGemSystem';
-import { spawnDeathParticles } from './ParticleSystem';
+import { spawnDeathParticles, spawnParticle } from './ParticleSystem';
+import { spawnDamageNumber } from './DamageNumberSystem';
+import { spawnChest } from './ChestSystem';
+import { hapticHeavy } from '../../services/AudioService';
 
 // Module-level buffer — reused each frame, avoids per-call allocation
 const _activeEnemyBuf: number[] = [];
 
+// ─── Shared death handler (used by CollisionSystem + WeaponSystem) ────────────
+export function handleEnemyDeath(gs: GameState, enemy: EnemyEntity): void {
+  const cfg = EnemyConfig[enemy.type];
+  enemy.active = false;
+  spawnGem(gs, enemy.position.x, enemy.position.y, enemy.xpValue);
+  spawnDeathParticles(gs, enemy.position.x, enemy.position.y, cfg.color);
+
+  // Combo + kill tracking
+  gs.killCombo++;
+  gs.comboTimer = 3.0;
+  if (gs.killCombo > gs.maxComboThisRun) gs.maxComboThisRun = gs.killCombo;
+  gs.totalKillsThisRun++;
+  if (enemy.type === 'boss') gs.bossKilledThisRun = true;
+
+  if (gs.player.lifesteal > 0 && Math.random() < gs.player.lifesteal) {
+    gs.player.hp = Math.min(gs.player.maxHp, gs.player.hp + 1);
+    gs.lifestealHealedThisRun++;
+  }
+
+  // Boss or elite drops a chest
+  if (enemy.type === 'boss' || enemy.isElite) {
+    spawnChest(gs, enemy.position.x, enemy.position.y, enemy.type === 'boss');
+  }
+
+  // Explosive: AoE blast on death
+  if (enemy.type === 'explosive') {
+    const dx = gs.player.position.x - enemy.position.x;
+    const dy = gs.player.position.y - enemy.position.y;
+    if (dx * dx + dy * dy < EXPLOSIVE_AOE_RADIUS * EXPLOSIVE_AOE_RADIUS) {
+      gs.player.hp = Math.max(0, gs.player.hp - EXPLOSIVE_AOE_DAMAGE);
+      gs.totalDamageTaken += EXPLOSIVE_AOE_DAMAGE;
+      if (gs.player.hp <= 0) {
+        gs.player.hp = 0;
+        gs.isGameOver = true;
+        gs.isPaused = true;
+      }
+      gs.shakeTimer = 0.45;
+      gs.shakeMagnitude = 14;
+      hapticHeavy();
+    }
+    for (let i = 0; i < 16; i++) {
+      const angle = (Math.PI * 2 * i) / 16;
+      const speed = 100 + Math.random() * 120;
+      spawnParticle(gs, enemy.position.x, enemy.position.y,
+        Math.cos(angle) * speed, Math.sin(angle) * speed, '#ff8800', 0.55, 7);
+    }
+    spawnParticle(gs, enemy.position.x, enemy.position.y, 0, 0, '#ffdd00', 0.35, 20);
+  }
+}
+
 export function tickCollisions(gs: GameState): void {
   const p = gs.player;
 
-  // Build compact active-enemy index: reduces inner loop from pool size to active count
+  // Build compact active-enemy index
   _activeEnemyBuf.length = 0;
   for (let ei = 0; ei < gs.enemies.length; ei++) {
     if (gs.enemies[ei].active) _activeEnemyBuf.push(ei);
@@ -23,7 +76,7 @@ export function tickCollisions(gs: GameState): void {
 
     for (let ai = 0; ai < aLen; ai++) {
       const enemy = gs.enemies[_activeEnemyBuf[ai]];
-      if (!enemy.active) continue; // may have been killed by earlier projectile this frame
+      if (!enemy.active) continue;
       if (proj.hitEnemyIds.has(enemy.id)) continue;
 
       const dx = proj.position.x - enemy.position.x;
@@ -33,21 +86,18 @@ export function tickCollisions(gs: GameState): void {
         enemy.hp -= proj.damage;
         enemy.hitFlashTimer = 0.12;
         proj.hitEnemyIds.add(enemy.id);
+        if (proj.isCrit) gs.totalCritsThisRun++;
+        spawnDamageNumber(gs, enemy.position.x, enemy.position.y, Math.round(proj.damage), proj.isCrit);
 
-        // Whip/fireball can pierce; dagger deactivates on first hit
-        if (proj.weaponId === 'dagger') {
-          proj.active = false;
+        if (proj.weaponId === 'dagger') proj.active = false;
+
+        // blood_blade: 50% chance to heal 1 HP on hit
+        if (proj.weaponId === 'blood_blade' && Math.random() < 0.5) {
+          gs.player.hp = Math.min(gs.player.maxHp, gs.player.hp + 1);
+          gs.lifestealHealedThisRun++;
         }
 
-        if (enemy.hp <= 0) {
-          const cfg = EnemyConfig[enemy.type];
-          enemy.active = false;
-          spawnGem(gs, enemy.position.x, enemy.position.y, enemy.xpValue);
-          spawnDeathParticles(gs, enemy.position.x, enemy.position.y, cfg.color);
-          if (p.lifesteal > 0 && Math.random() < p.lifesteal) {
-            p.hp = Math.min(p.maxHp, p.hp + 1);
-          }
-        }
+        if (enemy.hp <= 0) handleEnemyDeath(gs, enemy);
       }
     }
   }
@@ -69,13 +119,17 @@ export function tickCollisions(gs: GameState): void {
         gs.shakeTimer = 0.30;
         gs.shakeMagnitude = 7;
         enemy.contactTimer = 0.5;
+        // Reset combo on taking damage
+        gs.killCombo = 0;
+        gs.totalDamageTaken += dmg;
+        hapticHeavy();
 
         if (p.hp <= 0) {
           p.hp = 0;
           gs.isGameOver = true;
           gs.isPaused = true;
         }
-        break; // one hit per frame is enough
+        break;
       }
     }
   }
@@ -93,7 +147,6 @@ export function tickCollisions(gs: GameState): void {
     const distSq = dx * dx + dy * dy;
 
     if (distSq < collectRadiusSq) {
-      // Collect
       gem.active = false;
       p.xp += gem.value;
       if (p.xp >= p.xpToNextLevel) {
@@ -105,7 +158,6 @@ export function tickCollisions(gs: GameState): void {
         gs.pendingLevelUp = true;
       }
     } else if (distSq < magnetRadiusSq) {
-      // Magnetize
       gem.isMagnetized = true;
     }
   }

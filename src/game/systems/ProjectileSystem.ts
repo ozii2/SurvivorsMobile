@@ -10,7 +10,8 @@ export function spawnProjectile(
   damage: number,
   lifetime: number,
   radius: number,
-  weaponId: WeaponId
+  weaponId: WeaponId,
+  isCrit = false,
 ): ProjectileEntity | null {
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
@@ -24,6 +25,7 @@ export function spawnProjectile(
       p.lifetime = lifetime;
       p.radius = radius;
       p.weaponId = weaponId;
+      p.isCrit = isCrit;
       p.hitEnemyIds.clear();
       gs.idCounter++;
       p.id = gs.idCounter;

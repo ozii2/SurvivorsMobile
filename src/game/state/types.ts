@@ -5,6 +5,26 @@ export interface Vec2 {
   y: number;
 }
 
+// ─── Character & Item types ───────────────────────────────────────────────────
+
+export type CharacterId = 'warrior' | 'mage' | 'healer' | 'hunter';
+
+export type PassiveItemId =
+  | 'blood_stone'
+  | 'spell_book'
+  | 'power_stone'
+  | 'storm_crystal'
+  | 'garlic_essence'
+  | 'holy_relic';
+
+export type EvolvedWeaponId =
+  | 'blood_blade'
+  | 'hellfire'
+  | 'soul_whip'
+  | 'thunder_storm'
+  | 'death_aura'
+  | 'divine_blade';
+
 // ─── Entities ────────────────────────────────────────────────────────────────
 
 export interface Entity {
@@ -15,7 +35,9 @@ export interface Entity {
   active: boolean;
 }
 
-export type WeaponId = 'dagger' | 'fireball' | 'whip' | 'lightning';
+export type WeaponId =
+  | 'dagger' | 'fireball' | 'whip' | 'lightning' | 'garlic' | 'cross'
+  | EvolvedWeaponId;
 
 export interface WeaponInstance {
   id: WeaponId;
@@ -31,15 +53,23 @@ export interface PlayerEntity extends Entity {
   xp: number;
   level: number;
   xpToNextLevel: number;
-  invincibleTimer: number; // iframes after being hit
+  invincibleTimer: number;
   weapons: WeaponInstance[];
   magnetRadius: number;
   armor: number;
-  critChance: number;   // 0.0 – 1.0 (default 0)
-  lifesteal: number;    // HP per kill (default 0)
+  critChance: number;
+  lifesteal: number;
+  // Character & item stat modifiers
+  characterId: CharacterId;
+  ownedPassiveItems: PassiveItemId[];
+  mightMultiplier: number;        // damage multiplier (1.0 = normal)
+  cooldownMultiplier: number;     // cooldown multiplier (1.0 = normal, 0.9 = 10% faster)
+  bonusGarlicRadius: number;      // additive fraction (0.2 = +20% radius)
+  bonusPierceLifetime: number;    // additive fraction (0.25 = +25% lifetime)
+  bonusLightningTargets: number;  // integer extra targets
 }
 
-export type EnemyType = 'basic' | 'fast' | 'tank' | 'boss';
+export type EnemyType = 'basic' | 'fast' | 'tank' | 'boss' | 'swarm' | 'explosive';
 
 export interface EnemyEntity extends Entity {
   hp: number;
@@ -58,11 +88,17 @@ export interface ProjectileEntity extends Entity {
   lifetime: number;
   hitEnemyIds: Set<number>;
   weaponId: WeaponId;
+  isCrit: boolean;
 }
 
 export interface XPGemEntity extends Entity {
   value: number;
   isMagnetized: boolean;
+}
+
+export interface ChestEntity extends Entity {
+  fromBoss: boolean;  // true = boss drop (bigger glow), false = elite drop
+  lifetime: number;   // seconds remaining before despawn
 }
 
 export interface ParticleEntity extends Entity {
@@ -71,25 +107,55 @@ export interface ParticleEntity extends Entity {
   color: string;
 }
 
+export interface DamageNumber {
+  x: number;
+  y: number;
+  value: number;
+  isCrit: boolean;
+  lifetime: number;
+  maxLifetime: number;
+  active: boolean;
+}
+
 // ─── Central Game State (lives in useRef — never in React state) ─────────────
 
 export interface GameState {
   player: PlayerEntity;
-  enemies: EnemyEntity[];          // fixed pool: 128 slots
-  projectiles: ProjectileEntity[]; // fixed pool: 256 slots
-  xpGems: XPGemEntity[];           // fixed pool: 200 slots
-  particles: ParticleEntity[];     // fixed pool: 300 slots
+  enemies: EnemyEntity[];
+  projectiles: ProjectileEntity[];
+  xpGems: XPGemEntity[];
+  particles: ParticleEntity[];
+  damageNumbers: DamageNumber[];
+  chests: ChestEntity[];           // fixed pool: 4 slots
   worldOffset: Vec2;
-  shakeTimer: number;     // seconds remaining for screen shake
-  shakeMagnitude: number; // peak shake in pixels           // camera position (top-left world coord)
-  waveTimer: number;           // seconds until next spawn
+  shakeTimer: number;
+  shakeMagnitude: number;
+  waveTimer: number;
   waveNumber: number;
-  gameTime: number;            // total elapsed seconds
+  gameTime: number;
   isPaused: boolean;
   pendingLevelUp: boolean;
-  lastUISyncTime: number;      // for throttling Zustand updates
+  pendingChestOpen: boolean;       // chest collected, waiting for modal
+  lastUISyncTime: number;
   isGameOver: boolean;
   idCounter: number;
+  // Combo
+  killCombo: number;
+  comboTimer: number;
+  maxComboThisRun: number;
+  // Wave announce
+  waveAnnounceTimer: number;
+  waveAnnounceText: string;
+  waveAnnounceColor: string;
+  currentWaveIndex: number;
+  // Achievement tracking
+  totalKillsThisRun: number;
+  totalCritsThisRun: number;
+  lifestealHealedThisRun: number;
+  totalDamageTaken: number;
+  bossKilledThisRun: boolean;
+  reachedWave3NoDamage: boolean;
+  runAchievements: string[];
 }
 
 // ─── Upgrade system ──────────────────────────────────────────────────────────
@@ -102,7 +168,9 @@ export type UpgradeType =
   | 'armor'
   | 'magnet'
   | 'crit'
-  | 'lifesteal';
+  | 'lifesteal'
+  | 'passive_item'
+  | 'weapon_evolve';
 
 export interface UpgradeOption {
   id: string;
@@ -110,6 +178,7 @@ export interface UpgradeOption {
   label: string;
   description: string;
   weaponId?: WeaponId;
+  passiveItemId?: PassiveItemId;
 }
 
 // ─── Zustand UI Store (React components only, updated ~10Hz) ─────────────────
@@ -124,6 +193,7 @@ export interface UIStore {
   isPaused: boolean;
   isGameOver: boolean;
   pendingUpgradeChoices: UpgradeOption[];
+  maxComboThisRun: number;
   // actions
   syncFromGameState: (gs: GameState) => void;
   setPaused: (v: boolean) => void;

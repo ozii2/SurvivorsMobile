@@ -11,6 +11,7 @@ export const useGameStore = create<UIStore>((set) => ({
   isPaused: false,
   isGameOver: false,
   pendingUpgradeChoices: [],
+  maxComboThisRun: 0,
 
   syncFromGameState: (gs: GameState) =>
     set({
@@ -22,6 +23,7 @@ export const useGameStore = create<UIStore>((set) => ({
       waveNumber: gs.waveNumber,
       isPaused: gs.isPaused,
       isGameOver: gs.isGameOver,
+      maxComboThisRun: gs.maxComboThisRun,
     }),
 
   setPaused: (v: boolean) =>
@@ -46,5 +48,6 @@ export const useGameStore = create<UIStore>((set) => ({
       isPaused: false,
       isGameOver: false,
       pendingUpgradeChoices: [],
+      maxComboThisRun: 0,
     }),
 }));
