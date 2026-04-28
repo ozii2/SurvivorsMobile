@@ -1,6 +1,6 @@
 import React, { useRef, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
-import { Canvas, Picture, Skia, SkPicture } from '@shopify/react-native-skia';
+import { Canvas, Picture, Skia, SkPicture, useImage } from '@shopify/react-native-skia';
 import { useSharedValue, useFrameCallback, runOnJS, FrameInfo } from 'react-native-reanimated';
 
 import { GameState, UpgradeOption } from '../game/state/types';
@@ -50,9 +50,11 @@ export function GameCanvas({
   screenH,
   onLevelUp,
   onGameOver,
+  playerPhoto,
   bodyColor,
   glowRgb,
 }: Props) {
+  const playerImage = useImage(playerPhoto ?? null);
   const syncStore        = useGameStore(s => s.syncFromGameState);
   const setUpgradeChoices = useGameStore(s => s.setUpgradeChoices);
 
@@ -115,7 +117,7 @@ export function GameCanvas({
     // finishRecordingAsPicture() seals it; setting picture.value pushes it to
     // the UI thread where Skia renders it — without React reconciling anything.
     const skCanvas = _recorder.beginRecording(Skia.XYWHRect(0, 0, screenW, screenH));
-    drawFrame(skCanvas, gs, renderOffset, screenW, screenH, bodyColor, glowRgb);
+    drawFrame(skCanvas, gs, renderOffset, screenW, screenH, bodyColor, glowRgb, playerImage);
     picture.value = _recorder.finishRecordingAsPicture();
 
     // ── UI sync (~10 Hz) ──

@@ -4,7 +4,7 @@
  * for position-dependent gradients which must be recreated each draw).
  * canvas.rotate() takes DEGREES, not radians.
  */
-import { SkCanvas } from '@shopify/react-native-skia';
+import { SkCanvas, SkImage } from '@shopify/react-native-skia';
 import { GameState, Vec2, EnemyEntity } from '../game/state/types';
 import { GarlicConfig } from '../game/config/GameConfig';
 import {
@@ -23,7 +23,8 @@ import {
   fallbackGlowPaint, fallbackBodyPaint,
   gemGlowPaint, gemBodyPaint, gemCorePaint,
   playerGlowOutPaint, playerGlowMidPaint, playerGlowInPaint,
-  playerBodyPaint, playerShadowPaint,
+  playerBodyPaint, playerShadowPaint, playerPhotoPaint,
+  ClipOp,
   particlePaint,
   dmgNumNormalPaint, dmgNumCritPaint, dmgNumBigPaint,
   comboTextPaint, announceTextPaint, announceBgPaint,
@@ -47,6 +48,7 @@ export function drawFrame(
   screenH: number,
   bodyColor?: string,
   glowRgb?: string,
+  playerImage?: SkImage | null,
 ): void {
   drawBackground(canvas, worldOffset, screenW, screenH, gs.currentBiomeId);
   drawXPGems(canvas, gs, worldOffset, screenW, screenH);
@@ -54,7 +56,7 @@ export function drawFrame(
   drawEnemies(canvas, gs, worldOffset, screenW, screenH);
   drawProjectiles(canvas, gs, worldOffset, screenW, screenH);
   drawParticles(canvas, gs, worldOffset, screenW, screenH);
-  drawPlayer(canvas, gs, worldOffset, bodyColor, glowRgb);
+  drawPlayer(canvas, gs, worldOffset, bodyColor, glowRgb, playerImage);
   drawDamageNumbers(canvas, gs, worldOffset, screenW, screenH);
   drawHUD(canvas, gs, screenW, screenH);
   drawWaveAnnounce(canvas, gs, screenW, screenH);
@@ -362,6 +364,7 @@ function drawPlayer(
   worldOffset: Vec2,
   bodyColor?: string,
   glowRgb?: string,
+  playerImage?: SkImage | null,
 ): void {
   const player = gs.player;
   const sx = player.position.x - worldOffset.x;
@@ -394,8 +397,23 @@ function drawPlayer(
 
   canvas.drawCircle(sx + 2, sy + 3, r, playerShadowPaint);
 
-  playerBodyPaint.setColor(flash ? HIT_FLASH_COL : Skia.Color(bodyColor ?? '#4fc3f7'));
-  canvas.drawCircle(sx, sy, r, playerBodyPaint);
+  if (playerImage) {
+    const clipPath = Skia.Path.Make();
+    clipPath.addCircle(sx, sy, r);
+    canvas.save();
+    canvas.clipPath(clipPath, ClipOp.Intersect, true);
+    playerPhotoPaint.setAlphaf(flash ? 0.4 : 1.0);
+    canvas.drawImageRect(
+      playerImage,
+      Skia.XYWHRect(0, 0, playerImage.width(), playerImage.height()),
+      Skia.XYWHRect(sx - r, sy - r, r * 2, r * 2),
+      playerPhotoPaint,
+    );
+    canvas.restore();
+  } else {
+    playerBodyPaint.setColor(flash ? HIT_FLASH_COL : Skia.Color(bodyColor ?? '#4fc3f7'));
+    canvas.drawCircle(sx, sy, r, playerBodyPaint);
+  }
 }
 
 // ── Damage Numbers ────────────────────────────────────────────────────────────

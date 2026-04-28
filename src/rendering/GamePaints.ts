@@ -4,7 +4,8 @@
  * Mutable paints (setColor / setShader before each draw) are intentional:
  * mutating an existing SkPaint is far cheaper than allocating a new one.
  */
-import { Skia, PaintStyle, TileMode, matchFont } from '@shopify/react-native-skia';
+import { Skia, PaintStyle, TileMode, matchFont, ClipOp } from '@shopify/react-native-skia';
+export { ClipOp };
 
 // ── Fonts ────────────────────────────────────────────────────────────────────
 export const FONT           = matchFont({ fontFamily: 'System', fontSize: 13 });
@@ -105,6 +106,7 @@ export const playerGlowMidPaint = _fill();
 export const playerGlowInPaint  = _fill();
 export const playerBodyPaint    = _fill();  // setColor (flash or bodyColor)
 export const playerShadowPaint  = _fill('rgba(0,0,0,0.35)');
+export const playerPhotoPaint   = _fill('#ffffff');  // setAlphaf per frame
 
 // ── Damage number paints ──────────────────────────────────────────────────────
 export const dmgNumNormalPaint = _fill('#ffffff');

@@ -9,6 +9,9 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue, withTiming, withDelay, useAnimatedStyle,
+} from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -295,6 +298,147 @@ const PLAYER_PRESETS = [
   { id: 'pink',   color: '#ff88cc', rgb: '255,136,204',  label: 'Pembe'    },
 ];
 
+// ─── Menu Design Tokens ───────────────────────────────────────────────────────
+
+const MG = {
+  bg:       '#050510',
+  surface:  '#0e0e1e',
+  surface2: '#161628',
+  border:   '#252542',
+  gold:     '#ffe066',
+  red:      '#ff3355',
+  blue:     '#4fc3f7',
+  white:    '#ffffff',
+  muted:    '#7070a0',
+  faint:    '#3a3a58',
+} as const;
+
+const mStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: MG.bg,
+    paddingTop: Platform.OS === 'ios' ? 52 : 36,
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+  },
+  bgTop: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    height: '55%', backgroundColor: '#0d0420', opacity: 0.7,
+  },
+  bgBottom: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    height: '40%', backgroundColor: '#160308', opacity: 0.6,
+  },
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goldBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: MG.surface2,
+    borderRadius: 22, paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1, borderColor: 'rgba(255,224,102,0.22)',
+  },
+  goldText: { color: MG.gold, fontSize: 15, fontWeight: '700' },
+  settingsBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: MG.surface2, borderWidth: 1, borderColor: MG.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  // Hero
+  hero: { alignItems: 'center', gap: 4 },
+  eyebrow: {
+    fontSize: 10, color: MG.faint, letterSpacing: 4, fontWeight: '700',
+    marginBottom: 4,
+  },
+  title1: {
+    fontSize: 54, fontWeight: '900', color: MG.red,
+    letterSpacing: 8, lineHeight: 60,
+    textShadowColor: 'rgba(255,51,85,0.65)',
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 28,
+  },
+  title2: {
+    fontSize: 38, fontWeight: '900', color: MG.gold,
+    letterSpacing: 5, lineHeight: 46, marginTop: -6,
+    textShadowColor: 'rgba(255,224,102,0.55)',
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 22,
+  },
+  titleLine: {
+    width: 60, height: 1.5, backgroundColor: MG.red,
+    marginTop: 10, opacity: 0.5,
+  },
+  tagline: { fontSize: 11, color: MG.muted, letterSpacing: 3, marginTop: 6 },
+  // Stats card
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: MG.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: MG.border,
+    paddingVertical: 16, overflow: 'hidden',
+  },
+  statsTopBorder: {
+    position: 'absolute', top: 0, left: 24, right: 24,
+    height: 1, backgroundColor: MG.gold, opacity: 0.25,
+  },
+  statBlock: { flex: 1, alignItems: 'center', gap: 3 },
+  statNum: { fontSize: 22, fontWeight: '800', color: MG.gold, letterSpacing: 1 },
+  statLbl: { fontSize: 9, color: MG.faint, letterSpacing: 1.5, fontWeight: '600' },
+  statSep: { width: 1, marginVertical: 6, backgroundColor: MG.border },
+  statBlank: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  statBlankText: { fontSize: 11, color: MG.faint, letterSpacing: 1 },
+  // Color picker
+  pickerSection: { alignItems: 'center', gap: 10 },
+  pickerLabel: { fontSize: 9, color: MG.faint, letterSpacing: 3.5, fontWeight: '700' },
+  pickerRow: {
+    flexDirection: 'row', gap: 6,
+    flexWrap: 'wrap', justifyContent: 'center',
+  },
+  dotWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 38, height: 38, borderRadius: 19 },
+  dotRing: {
+    position: 'absolute', width: 50, height: 50, borderRadius: 25,
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  photoDot: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: MG.surface2, borderWidth: 1.5,
+    borderColor: MG.border, alignItems: 'center', justifyContent: 'center',
+  },
+  // Play button
+  playBtn: {
+    backgroundColor: MG.gold, borderRadius: 16,
+    paddingVertical: 20, alignItems: 'center', justifyContent: 'center',
+    shadowColor: MG.gold, shadowOpacity: 0.55, shadowRadius: 28,
+    shadowOffset: { width: 0, height: 10 }, elevation: 18,
+    overflow: 'hidden',
+  },
+  playBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  playText: {
+    fontSize: 26, fontWeight: '900', color: MG.bg, letterSpacing: 10,
+  },
+  playShimmer: {
+    position: 'absolute', top: 0, left: -60, width: 80, height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    transform: [{ skewX: '-18deg' }],
+  },
+  // Nav row
+  navRow: {
+    flexDirection: 'row',
+    backgroundColor: MG.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: MG.border, overflow: 'hidden',
+  },
+  navBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 8, paddingVertical: 15, minHeight: 52,
+  },
+  navText: { fontSize: 12, fontWeight: '700', letterSpacing: 2 },
+  navSep: { width: 1, marginVertical: 10, backgroundColor: MG.border },
+  // Footer
+  version: { textAlign: 'center', fontSize: 10, color: MG.faint, letterSpacing: 1 },
+});
+
 // ─── Menu Screen ─────────────────────────────────────────────────────────────
 
 function MenuScreen({
@@ -315,160 +459,219 @@ function MenuScreen({
   onPresetChange: (id: string) => void;
 }) {
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const highestWave = useSaveStore(s => s.highestWave);
-  const totalGames = useSaveStore(s => s.totalGames);
+  const highestWave      = useSaveStore(s => s.highestWave);
+  const totalGames       = useSaveStore(s => s.totalGames);
   const currentGoldBalance = useSaveStore(s => s.currentGoldBalance);
 
+  // ── Entrance animations (staggered fade + translate) ──────────────────────
+  const aHeader  = useSharedValue(0);
+  const aHero    = useSharedValue(0);
+  const aCard    = useSharedValue(0);
+  const aCta     = useSharedValue(0);
+
+  useEffect(() => {
+    aHeader.value = withTiming(1, { duration: 380 });
+    aHero.value   = withDelay(120, withTiming(1, { duration: 480 }));
+    aCard.value   = withDelay(260, withTiming(1, { duration: 480 }));
+    aCta.value    = withDelay(380, withTiming(1, { duration: 500 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sHeader = useAnimatedStyle(() => ({
+    opacity: aHeader.value,
+    transform: [{ translateY: (1 - aHeader.value) * -16 }],
+  }));
+  const sHero = useAnimatedStyle(() => ({
+    opacity: aHero.value,
+    transform: [{ translateY: (1 - aHero.value) * 32 }],
+  }));
+  const sCard = useAnimatedStyle(() => ({
+    opacity: aCard.value,
+    transform: [{ translateY: (1 - aCard.value) * 20 }],
+  }));
+  const sCta = useAnimatedStyle(() => ({
+    opacity: aCta.value,
+    transform: [{ scale: 0.92 + aCta.value * 0.08 }],
+  }));
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const pickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
+      allowsEditing: true, aspect: [1, 1], quality: 0.7,
     });
-    if (!result.canceled && result.assets[0]) {
-      onPhotoChange(result.assets[0].uri);
-    }
+    if (!result.canceled && result.assets[0]) onPhotoChange(result.assets[0].uri);
   }, [onPhotoChange]);
 
   const selectPreset = useCallback((id: string) => {
+    hapticSelection();
     onPhotoChange(null);
     onPresetChange(id);
   }, [onPhotoChange, onPresetChange]);
 
+  const handlePlay = useCallback(() => {
+    hapticSuccess();
+    onStart();
+  }, [onStart]);
+
   return (
-    <View style={styles.menuContainer}>
+    <View style={mStyles.container}>
+      {/* ── Atmospheric background layers ──────────────── */}
+      <View style={mStyles.bgTop} pointerEvents="none" />
+      <View style={mStyles.bgBottom} pointerEvents="none" />
+
       <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
-      {/* ── Header ───────────────────────────────────── */}
-      <View style={styles.menuHeader}>
+      {/* ── Header: gold balance + settings ──────────── */}
+      <Animated.View style={[mStyles.header, sHeader]}>
+        <View style={mStyles.goldBadge}>
+          <Ionicons name="diamond" size={13} color={MG.gold} />
+          <Text style={mStyles.goldText}>{currentGoldBalance}</Text>
+        </View>
         <TouchableOpacity
-          style={styles.settingsBtn}
+          style={mStyles.settingsBtn}
           onPress={() => setSettingsVisible(true)}
           accessibilityLabel="Ayarlar"
           accessibilityRole="button"
-          activeOpacity={0.75}
+          activeOpacity={0.7}
         >
-          <Ionicons name="settings-sharp" size={20} color="#8888bb" />
+          <Ionicons name="settings-sharp" size={18} color={MG.muted} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      {/* ── Hero ─────────────────────────────────────── */}
-      <View style={styles.heroSection}>
-        <Text style={styles.heroEyebrow}>ROGUELITE  ACTION</Text>
-        <Text style={styles.gameTitle}>VAMPIRE{'\n'}SURVIVORS</Text>
-        <Text style={styles.heroTagline}>Hayatta Kal. Evrimleş. Ezil.</Text>
-      </View>
+      {/* ── Hero: title + tagline ─────────────────────── */}
+      <Animated.View style={[mStyles.hero, sHero]}>
+        <Text style={mStyles.eyebrow}>— ROGUELITE  ·  ACTION —</Text>
+        <Text style={mStyles.title1}>BALL</Text>
+        <Text style={mStyles.title2}>SURVIVE</Text>
+        <View style={mStyles.titleLine} />
+        <Text style={mStyles.tagline}>Hayatta Kal  ·  Evrimleş  ·  Ezil</Text>
+      </Animated.View>
 
-      {/* ── Stats card ───────────────────────────────── */}
-      {totalGames > 0 ? (
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Ionicons name="trophy-outline" size={15} color="#ffe066" />
-            <Text style={styles.statLabel}>En Yüksek Dalga</Text>
-            <Text style={styles.statValue}>{highestWave}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="game-controller-outline" size={15} color="#8888bb" />
-            <Text style={styles.statLabel}>Toplam Oyun</Text>
-            <Text style={styles.statValue}>{totalGames}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="diamond-outline" size={15} color="#ffe066" />
-            <Text style={styles.statLabel}>Altın</Text>
-            <Text style={styles.statValue}>{currentGoldBalance}</Text>
-          </View>
+      {/* ── Stats card ────────────────────────────────── */}
+      <Animated.View style={sCard}>
+        <View style={mStyles.statsCard}>
+          <View style={mStyles.statsTopBorder} />
+          {totalGames > 0 ? (
+            <>
+              <View style={mStyles.statBlock}>
+                <Ionicons name="trophy" size={16} color={MG.gold} />
+                <Text style={mStyles.statNum}>{highestWave}</Text>
+                <Text style={mStyles.statLbl}>EN YÜKSEK DALGA</Text>
+              </View>
+              <View style={mStyles.statSep} />
+              <View style={mStyles.statBlock}>
+                <Ionicons name="game-controller" size={16} color={MG.muted} />
+                <Text style={mStyles.statNum}>{totalGames}</Text>
+                <Text style={mStyles.statLbl}>TOPLAM OYUN</Text>
+              </View>
+              <View style={mStyles.statSep} />
+              <View style={mStyles.statBlock}>
+                <Ionicons name="skull" size={16} color={MG.red} />
+                <Text style={[mStyles.statNum, { color: MG.red }]}>{currentGoldBalance}</Text>
+                <Text style={mStyles.statLbl}>ALTIN</Text>
+              </View>
+            </>
+          ) : (
+            <View style={mStyles.statBlank}>
+              <Text style={mStyles.statBlankText}>İlk oyununu oyna ve istatistiklerini gör</Text>
+            </View>
+          )}
         </View>
-      ) : (
-        <View style={styles.statsCardPlaceholder} />
-      )}
+      </Animated.View>
 
-      {/* ── Colour picker ────────────────────────────── */}
-      <View style={styles.presetSection}>
-        <Text style={styles.sectionLabel}>OYUNCU RENGİ</Text>
-        <View style={styles.presetRow}>
+      {/* ── Colour picker ─────────────────────────────── */}
+      <Animated.View style={[mStyles.pickerSection, sCard]}>
+        <Text style={mStyles.pickerLabel}>KAHRAMAN RENGİ</Text>
+        <View style={mStyles.pickerRow}>
           {PLAYER_PRESETS.map(p => {
-            const selected = !playerPhoto && presetId === p.id;
+            const sel = !playerPhoto && presetId === p.id;
             return (
               <TouchableOpacity
                 key={p.id}
-                style={[styles.presetItem, selected && { borderColor: p.color }]}
+                style={mStyles.dotWrap}
                 onPress={() => selectPreset(p.id)}
                 accessibilityLabel={`${p.label} renk seç`}
-                activeOpacity={0.75}
+                activeOpacity={0.7}
               >
-                <View
-                  style={[
-                    styles.presetCircle,
-                    { backgroundColor: p.color },
-                    selected && {
-                      shadowColor: p.color,
-                      shadowOpacity: 0.85,
-                      shadowRadius: 10,
-                      elevation: 8,
-                    },
-                  ]}
-                />
+                <View style={[
+                  mStyles.dot,
+                  { backgroundColor: p.color },
+                  sel && {
+                    shadowColor: p.color, shadowOpacity: 1,
+                    shadowRadius: 14, elevation: 14,
+                  },
+                ]} />
+                {sel && <View style={[mStyles.dotRing, { borderColor: p.color }]} />}
               </TouchableOpacity>
             );
           })}
-
           <TouchableOpacity
-            style={[styles.presetItem, !!playerPhoto && { borderColor: '#ffe066' }]}
+            style={mStyles.dotWrap}
             onPress={pickPhoto}
-            accessibilityLabel="Fotoğrafını seç"
-            activeOpacity={0.75}
+            accessibilityLabel="Fotoğraf seç"
+            activeOpacity={0.7}
           >
             {playerPhoto ? (
-              <Image source={{ uri: playerPhoto }} style={styles.presetCircle} />
+              <>
+                <Image source={{ uri: playerPhoto }} style={mStyles.dot} />
+                <View style={[mStyles.dotRing, { borderColor: MG.gold }]} />
+              </>
             ) : (
-              <View style={styles.presetPhotoCircle}>
-                <Ionicons name="camera-outline" size={20} color="#5a5a8c" />
+              <View style={mStyles.photoDot}>
+                <Ionicons name="camera" size={16} color={MG.faint} />
               </View>
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
-      {/* ── Primary CTA ──────────────────────────────── */}
-      <TouchableOpacity
-        style={styles.btnPlay}
-        onPress={onStart}
-        activeOpacity={0.82}
-        accessibilityLabel="Oyunu başlat"
-        accessibilityRole="button"
-      >
-        <Ionicons name="play" size={22} color="#0a0a12" />
-        <Text style={styles.btnPlayText}>OYNA</Text>
-      </TouchableOpacity>
-
-      {/* ── Secondary navigation ─────────────────────── */}
-      <View style={styles.secondaryRow}>
+      {/* ── Primary CTA: Play ─────────────────────────── */}
+      <Animated.View style={sCta}>
         <TouchableOpacity
-          style={styles.btnNav}
+          style={mStyles.playBtn}
+          onPress={handlePlay}
+          activeOpacity={0.82}
+          accessibilityLabel="Oyunu başlat"
+          accessibilityRole="button"
+        >
+          <View style={mStyles.playBtnInner}>
+            <Ionicons name="play" size={26} color={MG.bg} />
+            <Text style={mStyles.playText}>OYNA</Text>
+          </View>
+          <View style={mStyles.playShimmer} />
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* ── Secondary navigation ──────────────────────── */}
+      <Animated.View style={[mStyles.navRow, sCta]}>
+        <TouchableOpacity
+          style={mStyles.navBtn}
           onPress={onShop}
           accessibilityLabel="Mağazaya git"
           accessibilityRole="button"
-          activeOpacity={0.75}
+          activeOpacity={0.7}
         >
-          <Ionicons name="storefront-outline" size={17} color="#ffe066" />
-          <Text style={[styles.btnNavText, { color: '#ffe066' }]}>MAĞAZA</Text>
+          <Ionicons name="storefront" size={18} color={MG.gold} />
+          <Text style={[mStyles.navText, { color: MG.gold }]}>MAĞAZA</Text>
         </TouchableOpacity>
+        <View style={mStyles.navSep} />
         <TouchableOpacity
-          style={styles.btnNav}
+          style={mStyles.navBtn}
           onPress={onStats}
           accessibilityLabel="İstatistiklere git"
           accessibilityRole="button"
-          activeOpacity={0.75}
+          activeOpacity={0.7}
         >
-          <Ionicons name="bar-chart-outline" size={17} color="#4fc3f7" />
-          <Text style={[styles.btnNavText, { color: '#4fc3f7' }]}>İSTATİSTİK</Text>
+          <Ionicons name="bar-chart" size={18} color={MG.blue} />
+          <Text style={[mStyles.navText, { color: MG.blue }]}>İSTATİSTİK</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
+
+      {/* ── Footer ────────────────────────────────────── */}
+      <Text style={mStyles.version}>v1.0.0</Text>
     </View>
   );
 }

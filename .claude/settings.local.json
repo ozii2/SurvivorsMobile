@@ -14,7 +14,11 @@
       "Bash(rtk read *)",
       "Bash(rtk --version)",
       "Bash(rtk ls *)",
-      "Bash(rtk tsc *)"
+      "Bash(rtk tsc *)",
+      "Bash(rtk find *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk wc *)",
+      "Bash(python3 skills/ui-ux-pro-max/scripts/search.py \"vampire survivors roguelike action game dark fantasy\" --design-system -p \"MyGame\" -f markdown)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyGame",
+    "name": "Ball Survive",
     "slug": "mygame",
     "version": "1.0.0",
     "runtimeVersion": {
@@ -10,25 +10,24 @@
       "enabled": false
     },
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app_icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/app_icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0a0a"
+      "backgroundColor": "#050510"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.oguzhan.mygame"
+      "bundleIdentifier": "com.oguzhan.ballsurvive"
     },
     "android": {
-      "package": "com.oguzhan.mygame",
+      "package": "com.oguzhan.ballsurvive",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/app_icon.png",
+        "backgroundColor": "#050510",
+        "monochromeImage": "./assets/app_icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -40,7 +39,7 @@
       "translucent": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/app_icon.png"
     },
     "plugins": [
       [
