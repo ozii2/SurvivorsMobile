@@ -7,6 +7,8 @@ export interface Vec2 {
 
 // ─── Character & Item types ───────────────────────────────────────────────────
 
+export type BiomeId = 'nebula' | 'dungeon' | 'void';
+
 export type CharacterId = 'warrior' | 'mage' | 'healer' | 'hunter';
 
 export type PassiveItemId =
@@ -148,6 +150,7 @@ export interface GameState {
   waveAnnounceText: string;
   waveAnnounceColor: string;
   currentWaveIndex: number;
+  currentBiomeId: BiomeId;
   // Achievement tracking
   totalKillsThisRun: number;
   totalCritsThisRun: number;

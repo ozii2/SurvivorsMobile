@@ -48,7 +48,7 @@ export function drawFrame(
   bodyColor?: string,
   glowRgb?: string,
 ): void {
-  drawBackground(canvas, worldOffset, screenW, screenH);
+  drawBackground(canvas, worldOffset, screenW, screenH, gs.currentBiomeId);
   drawXPGems(canvas, gs, worldOffset, screenW, screenH);
   drawChests(canvas, gs, worldOffset, screenW, screenH);
   drawEnemies(canvas, gs, worldOffset, screenW, screenH);
@@ -62,16 +62,25 @@ export function drawFrame(
 
 // ── Background ────────────────────────────────────────────────────────────────
 
+const BIOME_PALETTE: Record<string, { grad: [string, string, string]; grid: string }> = {
+  nebula:  { grad: ['#1a0b38', '#0f0a28', '#07060f'], grid: 'rgba(79,195,247,0.06)'   },
+  dungeon: { grad: ['#1a0808', '#120404', '#080101'], grid: 'rgba(255,100,50,0.07)'   },
+  void:    { grad: ['#030a0f', '#000508', '#000003'], grid: 'rgba(0,220,180,0.07)'    },
+};
+
 function drawBackground(
   canvas: SkCanvas,
   worldOffset: Vec2,
   screenW: number,
   screenH: number,
+  biomeId: string = 'nebula',
 ): void {
+  const palette = BIOME_PALETTE[biomeId] ?? BIOME_PALETTE.nebula;
+
   // 1. Diagonal base gradient
   bgGradPaint.setShader(Skia.Shader.MakeLinearGradient(
     { x: 0, y: 0 }, { x: screenW, y: screenH },
-    [Skia.Color('#1a0b38'), Skia.Color('#0f0a28'), Skia.Color('#07060f')],
+    [Skia.Color(palette.grad[0]), Skia.Color(palette.grad[1]), Skia.Color(palette.grad[2])],
     null, TileMode.Clamp,
   ));
   canvas.drawRect(Skia.XYWHRect(0, 0, screenW, screenH), bgGradPaint);
@@ -103,6 +112,7 @@ function drawBackground(
   }
 
   // 5. Grid lines
+  gridLinePaint.setColor(Skia.Color(palette.grid));
   const startX = Math.floor(worldOffset.x / GRID_SIZE) * GRID_SIZE;
   const startY = Math.floor(worldOffset.y / GRID_SIZE) * GRID_SIZE;
   const endX   = worldOffset.x + screenW + GRID_SIZE;

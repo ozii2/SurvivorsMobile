@@ -6,7 +6,9 @@ import {
   StyleSheet,
   useWindowDimensions,
   Image,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,6 +22,8 @@ import { SettingsModal } from './src/ui/SettingsModal';
 import { PostGameStats } from './src/ui/PostGameStats';
 import { TutorialOverlay } from './src/ui/TutorialOverlay';
 import { CharacterSelectScreen } from './src/ui/CharacterSelectScreen';
+import { UpgradeShopScreen } from './src/ui/UpgradeShopScreen';
+import { StatsScreen } from './src/ui/StatsScreen';
 import { useGameEngine } from './src/hooks/useGameEngine';
 import { useGameStore } from './src/game/state/useGameStore';
 import { useSaveStore } from './src/game/state/useSaveStore';
@@ -117,8 +121,9 @@ function GameScreen({
   // Save stats + check achievements on game over
   useEffect(() => {
     if (isGameOver) {
-      recordGame(waveNumber, gameTime);
       const gs = gameStateRef.current;
+      const goldEarned = waveNumber * 10 + Math.floor(gs.totalKillsThisRun * 0.5);
+      recordGame(waveNumber, gameTime, goldEarned, gs.bossKilledThisRun, gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
       const newAchievements = checkAchievements(gs, saveData);
       if (newAchievements.length > 0) {
         unlockAchievements(newAchievements);
@@ -153,7 +158,7 @@ function GameScreen({
         glowRgb={glowRgb}
       />
 
-      {/* Joystick overlay */}
+      {/* Joystick overlay — tam ekran, dokunulan yerden başlar */}
       <View style={styles.joystickArea} pointerEvents="box-none">
         <VirtualJoystick joystickX={joystickX} joystickY={joystickY} />
       </View>
@@ -177,6 +182,47 @@ function GameScreen({
       {isPaused && !isGameOver && pendingChoices.length === 0 && (
         <View style={styles.overlay}>
           <Text style={styles.overlayTitle}>DURAKLATILDI</Text>
+
+          {/* Player inventory snapshot */}
+          {(() => {
+            const p = gameStateRef.current.player;
+            return (
+              <View style={styles.pauseInventory}>
+                {/* Level */}
+                <Text style={styles.pauseLevel}>Seviye {p.level}</Text>
+
+                {/* Weapons */}
+                <Text style={styles.pauseSectionLabel}>SİLAHLAR</Text>
+                <View style={styles.pauseTagRow}>
+                  {p.weapons.map(w => (
+                    <View key={w.id} style={styles.pauseWeaponTag}>
+                      <Text style={styles.pauseWeaponName}>
+                        {WEAPON_LABELS[w.id] ?? w.id}
+                      </Text>
+                      <Text style={styles.pauseWeaponLevel}>Lv{w.level}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Passive items */}
+                {p.ownedPassiveItems.length > 0 && (
+                  <>
+                    <Text style={styles.pauseSectionLabel}>EŞYALAR</Text>
+                    <View style={styles.pauseTagRow}>
+                      {p.ownedPassiveItems.map(id => (
+                        <View key={id} style={styles.pauseItemTag}>
+                          <Text style={styles.pauseItemText}>
+                            {PASSIVE_ITEM_LABELS[id] ?? id}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            );
+          })()}
+
           <TouchableOpacity style={styles.btn} onPress={pauseGame}>
             <Text style={styles.btnText}>Oyuna Devam Et</Text>
           </TouchableOpacity>
@@ -212,6 +258,32 @@ function GameScreen({
   );
 }
 
+// ─── Pause menu lookup tables ────────────────────────────────────────────────
+
+const WEAPON_LABELS: Record<string, string> = {
+  dagger:       '🗡️ Hançer',
+  fireball:     '🔥 Ateş Topu',
+  whip:         '⚡ Kırbaç',
+  lightning:    '🌩️ Şimşek',
+  garlic:       '🧄 Sarımsak',
+  cross:        '✝️ Kutsal Haç',
+  blood_blade:  '🩸 Kan Kılıcı',
+  hellfire:     '🔥 Cehennem Alevi',
+  soul_whip:    '💀 Ruh Kırbacı',
+  thunder_storm:'⚡ Kıyamet Şimşeği',
+  death_aura:   '☠️ Ölüm Bulutsu',
+  divine_blade: '✨ İlahi Kılıç',
+};
+
+const PASSIVE_ITEM_LABELS: Record<string, string> = {
+  blood_stone:    '🩸 Kan Taşı',
+  spell_book:     '📖 Büyü Kitabı',
+  power_stone:    '💎 Güç Taşı',
+  storm_crystal:  '⚡ Fırtına Kristali',
+  garlic_essence: '🧄 Sarımsak Özü',
+  holy_relic:     '✝️ Kutsal Emanet',
+};
+
 // ─── Preset tanımları ─────────────────────────────────────────────────────────
 
 const PLAYER_PRESETS = [
@@ -227,12 +299,16 @@ const PLAYER_PRESETS = [
 
 function MenuScreen({
   onStart,
+  onShop,
+  onStats,
   playerPhoto,
   presetId,
   onPhotoChange,
   onPresetChange,
 }: {
   onStart: () => void;
+  onShop: () => void;
+  onStats: () => void;
   playerPhoto: string | null;
   presetId: string;
   onPhotoChange: (uri: string | null) => void;
@@ -241,6 +317,7 @@ function MenuScreen({
   const [settingsVisible, setSettingsVisible] = useState(false);
   const highestWave = useSaveStore(s => s.highestWave);
   const totalGames = useSaveStore(s => s.totalGames);
+  const currentGoldBalance = useSaveStore(s => s.currentGoldBalance);
 
   const pickPhoto = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -263,64 +340,135 @@ function MenuScreen({
 
   return (
     <View style={styles.menuContainer}>
-      {/* Settings button */}
-      <TouchableOpacity style={styles.settingsBtn} onPress={() => setSettingsVisible(true)}>
-        <Text style={styles.settingsBtnText}>⚙</Text>
-      </TouchableOpacity>
-
       <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
-      <Text style={styles.gameTitle}>VAMPIRE{'\n'}SURVIVORS</Text>
-
-      {/* Player stats */}
-      {totalGames > 0 && (
-        <View style={styles.menuStatsRow}>
-          <Text style={styles.menuStatText}>En Yüksek Dalga: <Text style={styles.menuStatValue}>{highestWave}</Text></Text>
-          <Text style={styles.menuStatSep}>|</Text>
-          <Text style={styles.menuStatText}>Toplam Oyun: <Text style={styles.menuStatValue}>{totalGames}</Text></Text>
-        </View>
-      )}
-
-      <Text style={styles.sectionLabel}>Oyuncu Seç</Text>
-
-      {/* Preset baloncuklar */}
-      <View style={styles.presetRow}>
-        {PLAYER_PRESETS.map(p => {
-          const selected = !playerPhoto && presetId === p.id;
-          return (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.presetItem, selected && styles.presetSelected]}
-              onPress={() => selectPreset(p.id)}
-            >
-              <View style={[styles.presetCircle, { backgroundColor: p.color,
-                shadowColor: p.color, shadowOpacity: 0.8, shadowRadius: 6, elevation: 6 }]} />
-              <Text style={[styles.presetLabel, selected && { color: '#fff' }]}>{p.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Fotoğraf seçeneği */}
+      {/* ── Header ───────────────────────────────────── */}
+      <View style={styles.menuHeader}>
         <TouchableOpacity
-          style={[styles.presetItem, !!playerPhoto && styles.presetSelected]}
-          onPress={pickPhoto}
+          style={styles.settingsBtn}
+          onPress={() => setSettingsVisible(true)}
+          accessibilityLabel="Ayarlar"
+          accessibilityRole="button"
+          activeOpacity={0.75}
         >
-          {playerPhoto ? (
-            <Image source={{ uri: playerPhoto }} style={styles.presetPhoto} />
-          ) : (
-            <View style={[styles.presetCircle, styles.presetPhotoPlaceholder]}>
-              <Text style={{ fontSize: 20 }}>📷</Text>
-            </View>
-          )}
-          <Text style={[styles.presetLabel, !!playerPhoto && { color: '#fff' }]}>
-            {playerPhoto ? 'Fotoğraf' : 'Ekle'}
-          </Text>
+          <Ionicons name="settings-sharp" size={20} color="#8888bb" />
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={[styles.btn, styles.btnLarge]} onPress={onStart}>
-        <Text style={[styles.btnText, styles.btnTextLarge]}>OYNA</Text>
+      {/* ── Hero ─────────────────────────────────────── */}
+      <View style={styles.heroSection}>
+        <Text style={styles.heroEyebrow}>ROGUELITE  ACTION</Text>
+        <Text style={styles.gameTitle}>VAMPIRE{'\n'}SURVIVORS</Text>
+        <Text style={styles.heroTagline}>Hayatta Kal. Evrimleş. Ezil.</Text>
+      </View>
+
+      {/* ── Stats card ───────────────────────────────── */}
+      {totalGames > 0 ? (
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Ionicons name="trophy-outline" size={15} color="#ffe066" />
+            <Text style={styles.statLabel}>En Yüksek Dalga</Text>
+            <Text style={styles.statValue}>{highestWave}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="game-controller-outline" size={15} color="#8888bb" />
+            <Text style={styles.statLabel}>Toplam Oyun</Text>
+            <Text style={styles.statValue}>{totalGames}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="diamond-outline" size={15} color="#ffe066" />
+            <Text style={styles.statLabel}>Altın</Text>
+            <Text style={styles.statValue}>{currentGoldBalance}</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.statsCardPlaceholder} />
+      )}
+
+      {/* ── Colour picker ────────────────────────────── */}
+      <View style={styles.presetSection}>
+        <Text style={styles.sectionLabel}>OYUNCU RENGİ</Text>
+        <View style={styles.presetRow}>
+          {PLAYER_PRESETS.map(p => {
+            const selected = !playerPhoto && presetId === p.id;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.presetItem, selected && { borderColor: p.color }]}
+                onPress={() => selectPreset(p.id)}
+                accessibilityLabel={`${p.label} renk seç`}
+                activeOpacity={0.75}
+              >
+                <View
+                  style={[
+                    styles.presetCircle,
+                    { backgroundColor: p.color },
+                    selected && {
+                      shadowColor: p.color,
+                      shadowOpacity: 0.85,
+                      shadowRadius: 10,
+                      elevation: 8,
+                    },
+                  ]}
+                />
+              </TouchableOpacity>
+            );
+          })}
+
+          <TouchableOpacity
+            style={[styles.presetItem, !!playerPhoto && { borderColor: '#ffe066' }]}
+            onPress={pickPhoto}
+            accessibilityLabel="Fotoğrafını seç"
+            activeOpacity={0.75}
+          >
+            {playerPhoto ? (
+              <Image source={{ uri: playerPhoto }} style={styles.presetCircle} />
+            ) : (
+              <View style={styles.presetPhotoCircle}>
+                <Ionicons name="camera-outline" size={20} color="#5a5a8c" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* ── Primary CTA ──────────────────────────────── */}
+      <TouchableOpacity
+        style={styles.btnPlay}
+        onPress={onStart}
+        activeOpacity={0.82}
+        accessibilityLabel="Oyunu başlat"
+        accessibilityRole="button"
+      >
+        <Ionicons name="play" size={22} color="#0a0a12" />
+        <Text style={styles.btnPlayText}>OYNA</Text>
       </TouchableOpacity>
+
+      {/* ── Secondary navigation ─────────────────────── */}
+      <View style={styles.secondaryRow}>
+        <TouchableOpacity
+          style={styles.btnNav}
+          onPress={onShop}
+          accessibilityLabel="Mağazaya git"
+          accessibilityRole="button"
+          activeOpacity={0.75}
+        >
+          <Ionicons name="storefront-outline" size={17} color="#ffe066" />
+          <Text style={[styles.btnNavText, { color: '#ffe066' }]}>MAĞAZA</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.btnNav}
+          onPress={onStats}
+          accessibilityLabel="İstatistiklere git"
+          accessibilityRole="button"
+          activeOpacity={0.75}
+        >
+          <Ionicons name="bar-chart-outline" size={17} color="#4fc3f7" />
+          <Text style={[styles.btnNavText, { color: '#4fc3f7' }]}>İSTATİSTİK</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -328,7 +476,7 @@ function MenuScreen({
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState<'menu' | 'char_select' | 'game'>('menu');
+  const [screen, setScreen] = useState<'menu' | 'char_select' | 'game' | 'shop' | 'stats'>('menu');
   const [playerPhoto, setPlayerPhoto] = useState<string | null>(null);
   const [presetId, setPresetId] = useState('blue');
   const [startCharacter, setStartCharacter] = useState<CharacterId>('warrior');
@@ -359,6 +507,8 @@ export default function App() {
       {screen === 'menu' && (
         <MenuScreen
           onStart={() => setScreen('char_select')}
+          onShop={() => setScreen('shop')}
+          onStats={() => setScreen('stats')}
           playerPhoto={playerPhoto}
           presetId={presetId}
           onPhotoChange={setPlayerPhoto}
@@ -372,6 +522,12 @@ export default function App() {
             setScreen('game');
           }}
         />
+      )}
+      {screen === 'shop' && (
+        <UpgradeShopScreen onBack={() => setScreen('menu')} />
+      )}
+      {screen === 'stats' && (
+        <StatsScreen onBack={() => setScreen('menu')} />
       )}
       {screen === 'game' && (
         <GameScreen
@@ -397,46 +553,135 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a12',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    justifyContent: 'space-evenly',
+  },
+  menuHeader: {
+    width: '100%',
+    paddingTop: Platform.OS === 'ios' ? 52 : 32,
+    alignItems: 'flex-end',
+  },
+  heroSection: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroEyebrow: {
+    fontSize: 10,
+    color: '#4a4a6c',
+    letterSpacing: 3,
   },
   gameTitle: {
-    fontSize: 42,
+    fontSize: 46,
     fontWeight: 'bold',
     color: '#ffe066',
     textAlign: 'center',
-    letterSpacing: 4,
-    lineHeight: 50,
-    marginBottom: 8,
+    letterSpacing: 5,
+    lineHeight: 54,
+    textShadowColor: 'rgba(255,224,102,0.35)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 18,
   },
-  photoBtn: {
+  heroTagline: {
+    fontSize: 13,
+    color: '#6666aa',
+    letterSpacing: 2,
+  },
+  statsCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    gap: 8,
+    backgroundColor: '#141424',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2e2e4e',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    width: '100%',
+    maxWidth: 380,
   },
-  photoPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#4fc3f7',
+  statsCardPlaceholder: {
+    height: 68,
   },
-  photoPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#3a3a6c',
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 3,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#2e2e4e',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#5a5a8c',
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffe066',
+  },
+  presetSection: {
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+  },
+  presetPhotoCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#1a1a2e',
+    borderWidth: 2,
+    borderColor: '#3a3a5c',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoIcon: {
-    fontSize: 28,
+  btnPlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffe066',
+    borderRadius: 14,
+    paddingVertical: 18,
+    width: '100%',
+    maxWidth: 380,
+    gap: 10,
+    shadowColor: '#ffe066',
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
   },
-  photoLabel: {
-    color: '#8888bb',
-    fontSize: 13,
+  btnPlayText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0a0a12',
+    letterSpacing: 5,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+    maxWidth: 380,
+  },
+  btnNav: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#141424',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#2e2e4e',
+    minHeight: 48,
+  },
+  btnNavText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
   gameContainer: {
     flex: 1,
@@ -444,8 +689,7 @@ const styles = StyleSheet.create({
   },
   joystickArea: {
     position: 'absolute',
-    bottom: 50,
-    right: 30,
+    top: 0, left: 0, right: 0, bottom: 0,
   },
   overlay: {
     position: 'absolute',
@@ -477,11 +721,6 @@ const styles = StyleSheet.create({
     minWidth: 180,
     alignItems: 'center',
   },
-  btnLarge: {
-    paddingHorizontal: 48,
-    paddingVertical: 18,
-    minWidth: 220,
-  },
   btnSecondary: {
     backgroundColor: '#252540',
   },
@@ -491,89 +730,101 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  btnTextLarge: {
-    fontSize: 22,
-    letterSpacing: 3,
-  },
   sectionLabel: {
-    color: '#8888bb',
-    fontSize: 13,
-    letterSpacing: 1,
-    marginBottom: 4,
+    color: '#4a4a6c',
+    fontSize: 10,
+    letterSpacing: 2.5,
   },
   settingsBtn: {
-    position: 'absolute',
-    top: 52,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
-    borderColor: '#3a3a6c',
+    borderColor: '#3a3a5c',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  settingsBtnText: {
-    fontSize: 20,
-  },
-  menuStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
-  },
-  menuStatText: {
-    color: '#8888bb',
-    fontSize: 13,
-  },
-  menuStatValue: {
-    color: '#ffe066',
-    fontWeight: '700',
-  },
-  menuStatSep: {
-    color: '#3a3a6c',
-    fontSize: 16,
   },
   presetRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginBottom: 8,
+    gap: 10,
   },
   presetItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
-    gap: 4,
-    padding: 6,
-    borderRadius: 10,
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-  },
-  presetSelected: {
-    borderColor: '#ffe066',
-    backgroundColor: 'rgba(255,224,102,0.08)',
   },
   presetCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
   },
-  presetLabel: {
-    color: '#8888bb',
-    fontSize: 11,
-  },
-  presetPhoto: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  presetPhotoPlaceholder: {
-    backgroundColor: '#1a1a2e',
-    borderWidth: 2,
+  pauseInventory: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: '#3a3a6c',
+    padding: 14,
+    width: '88%',
+    maxWidth: 340,
+    gap: 6,
+    marginBottom: 8,
+  },
+  pauseLevel: {
+    color: '#ffe066',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  pauseSectionLabel: {
+    color: '#5a5a8c',
+    fontSize: 10,
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  pauseTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  pauseWeaponTag: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#1e1e3a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4a4a7c',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 6,
+  },
+  pauseWeaponName: {
+    color: '#ccccee',
+    fontSize: 13,
+  },
+  pauseWeaponLevel: {
+    color: '#ffe066',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  pauseItemTag: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#7B68EE66',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pauseItemText: {
+    color: '#aaaadd',
+    fontSize: 13,
   },
 });

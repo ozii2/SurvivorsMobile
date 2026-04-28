@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { CHARACTERS } from '../game/config/CharacterConfig';
 import { CharacterId } from '../game/state/types';
+import { useSaveStore } from '../game/state/useSaveStore';
 
 interface Props {
   onSelect: (characterId: CharacterId) => void;
@@ -16,7 +17,16 @@ const WEAPON_LABELS: Record<string, string> = {
   cross:    'Kutsal Haç',
 };
 
+const UNLOCK_CONDITIONS: Record<CharacterId, string> = {
+  warrior: '',
+  mage:    'Dalga 4\'e ulaş',
+  healer:  'Bir boss öldür',
+  hunter:  '5 dakika hayatta kal',
+};
+
 export function CharacterSelectScreen({ onSelect }: Props) {
+  const unlockedCharacters = useSaveStore(s => s.unlockedCharacters);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>KARAKTER SEÇ</Text>
@@ -27,31 +37,43 @@ export function CharacterSelectScreen({ onSelect }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {CHARACTERS.map(char => (
-          <TouchableOpacity
-            key={char.id}
-            style={styles.card}
-            onPress={() => onSelect(char.id)}
-            activeOpacity={0.75}
-          >
-            <View style={[styles.stripe, { backgroundColor: char.color }]} />
-            <Text style={styles.icon}>{char.icon}</Text>
-            <View style={styles.textBlock}>
-              <Text style={[styles.charName, { color: char.color }]}>{char.name}</Text>
-              <Text style={styles.charDesc}>{char.description}</Text>
-              <View style={styles.tagsRow}>
-                <View style={[styles.tag, { borderColor: char.color }]}>
-                  <Text style={[styles.tagText, { color: char.color }]}>
-                    {WEAPON_LABELS[char.startingWeaponId] ?? char.startingWeaponId}
-                  </Text>
-                </View>
-                <View style={[styles.tag, styles.tagBonus]}>
-                  <Text style={styles.tagBonusText}>{char.bonusLine}</Text>
-                </View>
+        {CHARACTERS.map(char => {
+          const isUnlocked = unlockedCharacters.includes(char.id);
+          return (
+            <TouchableOpacity
+              key={char.id}
+              style={[styles.card, !isUnlocked && styles.cardLocked]}
+              onPress={() => isUnlocked && onSelect(char.id)}
+              activeOpacity={isUnlocked ? 0.75 : 1}
+            >
+              <View style={[styles.stripe, { backgroundColor: isUnlocked ? char.color : '#444' }]} />
+              <Text style={[styles.icon, !isUnlocked && styles.iconLocked]}>{char.icon}</Text>
+              <View style={styles.textBlock}>
+                <Text style={[styles.charName, { color: isUnlocked ? char.color : '#666' }]}>
+                  {char.name}
+                  {!isUnlocked && <Text style={styles.lockBadge}> 🔒</Text>}
+                </Text>
+                {isUnlocked ? (
+                  <>
+                    <Text style={styles.charDesc}>{char.description}</Text>
+                    <View style={styles.tagsRow}>
+                      <View style={[styles.tag, { borderColor: char.color }]}>
+                        <Text style={[styles.tagText, { color: char.color }]}>
+                          {WEAPON_LABELS[char.startingWeaponId] ?? char.startingWeaponId}
+                        </Text>
+                      </View>
+                      <View style={[styles.tag, styles.tagBonus]}>
+                        <Text style={styles.tagBonusText}>{char.bonusLine}</Text>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.unlockHint}>Kilit aç: {UNLOCK_CONDITIONS[char.id]}</Text>
+                )}
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -97,6 +119,11 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     overflow: 'hidden',
   },
+  cardLocked: {
+    backgroundColor: '#111118',
+    borderColor: '#2a2a3c',
+    opacity: 0.7,
+  },
   stripe: {
     width: 6,
     alignSelf: 'stretch',
@@ -104,6 +131,9 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 34,
     paddingHorizontal: 14,
+  },
+  iconLocked: {
+    opacity: 0.35,
   },
   textBlock: {
     flex: 1,
@@ -116,10 +146,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
   },
+  lockBadge: {
+    fontSize: 14,
+  },
   charDesc: {
     fontSize: 12,
     color: '#9999bb',
     lineHeight: 17,
+  },
+  unlockHint: {
+    fontSize: 12,
+    color: '#666688',
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   tagsRow: {
     flexDirection: 'row',

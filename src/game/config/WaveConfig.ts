@@ -1,5 +1,7 @@
 import { EnemyType } from '../state/types';
 
+export type BiomeId = 'nebula' | 'dungeon' | 'void';
+
 export interface SpawnGroup {
   type: EnemyType;
   rate: number;   // enemies per second
@@ -9,19 +11,26 @@ export interface SpawnGroup {
 export interface WaveDefinition {
   startTime: number; // game seconds when this wave starts
   groups: SpawnGroup[];
-  announceText?: string;
-  announceColor?: string;
+  announceText: string;
+  announceColor: string;
+  biomeId: BiomeId;
 }
 
 export const WAVES: WaveDefinition[] = [
   // 0:00 — sadece basic
   {
     startTime: 0,
+    announceText: 'OYUN BAŞLADI!',
+    announceColor: '#4fc3f7',
+    biomeId: 'nebula',
     groups: [{ type: 'basic', rate: 0.8, max: 20 }],
   },
   // 1:00 — basic yoğunlaşır
   {
     startTime: 60,
+    announceText: 'DÜŞMANLAR YAKLAŞIYOR!',
+    announceColor: '#aaaaff',
+    biomeId: 'nebula',
     groups: [{ type: 'basic', rate: 1.5, max: 30 }],
   },
   // 1:30 — fast girer
@@ -29,6 +38,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 90,
     announceText: 'HIZ CANAVARLARI!',
     announceColor: '#ff9900',
+    biomeId: 'nebula',
     groups: [
       { type: 'basic', rate: 1.2, max: 25 },
       { type: 'fast',  rate: 0.5, max: 15 },
@@ -37,6 +47,9 @@ export const WAVES: WaveDefinition[] = [
   // 2:30 — hız artar
   {
     startTime: 150,
+    announceText: 'SALDIRI HIZLANIYOR!',
+    announceColor: '#ffcc44',
+    biomeId: 'nebula',
     groups: [
       { type: 'basic', rate: 2.0, max: 40 },
       { type: 'fast',  rate: 1.0, max: 20 },
@@ -47,6 +60,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 200,
     announceText: 'TANKLAR GELİYOR!',
     announceColor: '#cc44ff',
+    biomeId: 'nebula',
     groups: [
       { type: 'basic', rate: 2.0, max: 40 },
       { type: 'fast',  rate: 1.0, max: 20 },
@@ -58,6 +72,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 300,
     announceText: 'SÜRÜ SALDIRISI!',
     announceColor: '#44ff66',
+    biomeId: 'dungeon',
     groups: [
       { type: 'basic', rate: 2.5, max: 50 },
       { type: 'fast',  rate: 1.2, max: 22 },
@@ -70,6 +85,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 360,
     announceText: 'SÜRÜ KABARIYYOR!',
     announceColor: '#44ff66',
+    biomeId: 'dungeon',
     groups: [
       { type: 'basic', rate: 2.0, max: 40 },
       { type: 'fast',  rate: 1.5, max: 25 },
@@ -82,6 +98,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 420,
     announceText: 'PATLAYICI TEHDİT!',
     announceColor: '#ff6622',
+    biomeId: 'dungeon',
     groups: [
       { type: 'basic',     rate: 2.5, max: 45 },
       { type: 'fast',      rate: 1.5, max: 25 },
@@ -95,6 +112,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 480,
     announceText: 'PATRON GELİYOR!',
     announceColor: '#ff2222',
+    biomeId: 'void',
     groups: [
       { type: 'basic',     rate: 3.0, max: 55 },
       { type: 'fast',      rate: 2.0, max: 30 },
@@ -109,6 +127,7 @@ export const WAVES: WaveDefinition[] = [
     startTime: 540,
     announceText: 'KAOS MODU!',
     announceColor: '#ff0000',
+    biomeId: 'void',
     groups: [
       { type: 'basic',     rate: 4.0, max: 60 },
       { type: 'fast',      rate: 3.0, max: 40 },

@@ -134,6 +134,7 @@ export function GameCanvas({
 
       if (gs.pendingChestOpen) {
         gs.pendingChestOpen = false;
+        gs.isPaused = true;
         const choices = generateChestChoices(gs);
         setUpgradeChoices(choices);
         onLevelUp(choices);

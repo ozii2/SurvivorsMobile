@@ -10,7 +10,11 @@
       "Skill(sprint-plan)",
       "Bash(npx expo *)",
       "Bash(npm install *)",
-      "Bash(eas --version)"
+      "Bash(eas --version)",
+      "Bash(rtk read *)",
+      "Bash(rtk --version)",
+      "Bash(rtk ls *)",
+      "Bash(rtk tsc *)"
     ]
   }
 }

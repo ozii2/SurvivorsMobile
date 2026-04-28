@@ -1,7 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CharacterId } from '../game/state/types';
 
 const SAVE_KEY = '@mygame_save';
 const SETTINGS_KEY = '@mygame_settings';
+
+export interface PurchasedUpgrades {
+  maxHp: number;    // +10 HP each, max 5
+  damage: number;   // +8% damage each, max 5
+  armor: number;    // +1 armor each, max 5
+  speed: number;    // +5% speed each, max 5
+}
+
+export interface RunRecord {
+  wave: number;
+  time: number;       // seconds survived
+  characterId: CharacterId;
+  kills: number;
+  gold: number;
+  date: number;       // Date.now() timestamp
+}
 
 export interface SaveData {
   highestWave: number;
@@ -9,6 +26,11 @@ export interface SaveData {
   bestTime: number; // seconds
   tutorialCompleted: boolean;
   achievements: string[];
+  totalGold: number;
+  currentGoldBalance: number;
+  purchasedUpgrades: PurchasedUpgrades;
+  unlockedCharacters: CharacterId[];
+  runHistory: RunRecord[];   // last 5 runs, newest first
 }
 
 export interface Settings {
@@ -23,6 +45,11 @@ const DEFAULT_SAVE: SaveData = {
   bestTime: 0,
   tutorialCompleted: false,
   achievements: [],
+  totalGold: 0,
+  currentGoldBalance: 0,
+  purchasedUpgrades: { maxHp: 0, damage: 0, armor: 0, speed: 0 },
+  unlockedCharacters: ['warrior'],
+  runHistory: [],
 };
 const DEFAULT_SETTINGS: Settings = { soundEnabled: true, musicEnabled: true, graphicsQuality: 'medium' };
 

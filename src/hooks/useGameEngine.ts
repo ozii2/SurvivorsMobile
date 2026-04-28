@@ -5,9 +5,31 @@ import { createInitialGameState } from '../game/state/GameState';
 import { applyUpgrade } from '../game/systems/UpgradeSystem';
 import { resetWaveAccumulators } from '../game/systems/WaveSystem';
 import { useGameStore } from '../game/state/useGameStore';
+import { useSaveStore } from '../game/state/useSaveStore';
+import { PurchasedUpgrades } from '../services/SaveService';
+
+function applyPermanentUpgrades(gs: GameState, upgrades: PurchasedUpgrades): void {
+  const p = gs.player;
+  if (upgrades.maxHp > 0) {
+    const bonus = upgrades.maxHp * 10;
+    p.maxHp += bonus;
+    p.hp += bonus;
+  }
+  if (upgrades.damage > 0)  p.mightMultiplier  *= 1 + upgrades.damage * 0.08;
+  if (upgrades.armor > 0)   p.armor            += upgrades.armor;
+  if (upgrades.speed > 0)   p.speed            *= 1 + upgrades.speed * 0.05;
+}
 
 export function useGameEngine(characterId: CharacterId = 'warrior') {
-  const gameStateRef = useRef<GameState>(createInitialGameState(characterId));
+  const purchasedUpgrades = useSaveStore(s => s.purchasedUpgrades);
+
+  const makeState = useCallback(() => {
+    const gs = createInitialGameState(characterId);
+    applyPermanentUpgrades(gs, purchasedUpgrades);
+    return gs;
+  }, [characterId, purchasedUpgrades]);
+
+  const gameStateRef = useRef<GameState>(makeState());
   const joystickX = useSharedValue(0);
   const joystickY = useSharedValue(0);
 
@@ -36,9 +58,9 @@ export function useGameEngine(characterId: CharacterId = 'warrior') {
 
   const restartGame = useCallback(() => {
     resetWaveAccumulators();
-    gameStateRef.current = createInitialGameState(characterId);
+    gameStateRef.current = makeState();
     resetGame();
-  }, [resetGame, characterId]);
+  }, [resetGame, makeState]);
 
   return {
     gameStateRef,

@@ -44,7 +44,6 @@ export function tickChests(gs: GameState, dt: number): void {
     if (dx * dx + dy * dy < collectRadiusSq) {
       chest.active = false;
       gs.pendingChestOpen = true;
-      gs.isPaused = true;
       break;
     }
   }

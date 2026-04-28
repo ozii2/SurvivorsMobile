@@ -39,11 +39,10 @@ export function tickWaves(
     gs.waveNumber = newWaveIndex + 1;
 
     const wave = WAVES[newWaveIndex];
-    if (wave.announceText) {
-      gs.waveAnnounceTimer = 2.0;
-      gs.waveAnnounceText = wave.announceText;
-      gs.waveAnnounceColor = wave.announceColor ?? '#ffffff';
-    }
+    gs.waveAnnounceTimer = 2.5;
+    gs.waveAnnounceText = wave.announceText;
+    gs.waveAnnounceColor = wave.announceColor;
+    gs.currentBiomeId = wave.biomeId;
   }
 
   const wave = getCurrentWave(gs.gameTime);

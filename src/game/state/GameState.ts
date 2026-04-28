@@ -147,6 +147,7 @@ export function createInitialGameState(characterId: CharacterId = 'warrior'): Ga
     waveAnnounceText: '',
     waveAnnounceColor: '#ffffff',
     currentWaveIndex: 0,
+    currentBiomeId: 'nebula',
     totalKillsThisRun: 0,
     totalCritsThisRun: 0,
     lifestealHealedThisRun: 0,
