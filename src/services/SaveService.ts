@@ -37,6 +37,7 @@ export interface Settings {
   soundEnabled: boolean;
   musicEnabled: boolean;
   graphicsQuality: 'low' | 'medium' | 'high';
+  adsRemoved: boolean; // "Reklamları Kaldır" IAP satın alındı mı (yerel cache)
 }
 
 const DEFAULT_SAVE: SaveData = {
@@ -51,7 +52,7 @@ const DEFAULT_SAVE: SaveData = {
   unlockedCharacters: ['warrior'],
   runHistory: [],
 };
-const DEFAULT_SETTINGS: Settings = { soundEnabled: true, musicEnabled: true, graphicsQuality: 'medium' };
+const DEFAULT_SETTINGS: Settings = { soundEnabled: true, musicEnabled: true, graphicsQuality: 'medium', adsRemoved: false };
 
 export async function loadSave(): Promise<SaveData> {
   try {

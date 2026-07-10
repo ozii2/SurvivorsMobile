@@ -7,12 +7,23 @@ interface SettingsStore extends Settings {
   setSoundEnabled: (v: boolean) => void;
   setMusicEnabled: (v: boolean) => void;
   setGraphicsQuality: (v: Settings['graphicsQuality']) => void;
+  setAdsRemoved: (v: boolean) => void;
+}
+
+function persist(s: Settings): void {
+  writeSettings({
+    soundEnabled: s.soundEnabled,
+    musicEnabled: s.musicEnabled,
+    graphicsQuality: s.graphicsQuality,
+    adsRemoved: s.adsRemoved,
+  });
 }
 
 export const useSettingsStore = create<SettingsStore>((set, get) => ({
   soundEnabled: true,
   musicEnabled: true,
   graphicsQuality: 'medium',
+  adsRemoved: false,
   isLoaded: false,
 
   load: async () => {
@@ -22,19 +33,21 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   setSoundEnabled: (v: boolean) => {
     set({ soundEnabled: v });
-    const s = get();
-    writeSettings({ soundEnabled: v, musicEnabled: s.musicEnabled, graphicsQuality: s.graphicsQuality });
+    persist(get());
   },
 
   setMusicEnabled: (v: boolean) => {
     set({ musicEnabled: v });
-    const s = get();
-    writeSettings({ soundEnabled: s.soundEnabled, musicEnabled: v, graphicsQuality: s.graphicsQuality });
+    persist(get());
   },
 
   setGraphicsQuality: (v: Settings['graphicsQuality']) => {
     set({ graphicsQuality: v });
-    const s = get();
-    writeSettings({ soundEnabled: s.soundEnabled, musicEnabled: s.musicEnabled, graphicsQuality: v });
+    persist(get());
+  },
+
+  setAdsRemoved: (v: boolean) => {
+    set({ adsRemoved: v });
+    persist(get());
   },
 }));

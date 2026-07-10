@@ -27,8 +27,9 @@ import { TutorialOverlay } from './src/ui/TutorialOverlay';
 import { CharacterSelectScreen } from './src/ui/CharacterSelectScreen';
 import { UpgradeShopScreen } from './src/ui/UpgradeShopScreen';
 import { StatsScreen } from './src/ui/StatsScreen';
-import { initAds, showRewarded, maybeShowInterstitial } from './src/services/AdService';
+import { initAds, showRewarded, maybeShowInterstitial, setAdsRemoved as setAdsRemovedInService } from './src/services/AdService';
 import { useRewardedReady } from './src/hooks/useAds';
+import { initIap } from './src/services/IapService';
 import { useGameEngine } from './src/hooks/useGameEngine';
 import { useGameStore } from './src/game/state/useGameStore';
 import { useSaveStore } from './src/game/state/useSaveStore';
@@ -728,7 +729,18 @@ export default function App() {
       await loadSettings();
       await loadSave();
       await initAudio({ soundEnabled: soundOn, musicEnabled: musicOn });
-      initAds(); // AdMob'u başlat + reklamları önden yükle (bloklamaz)
+
+      // "Reklamları Kaldır" satın alındıysa reklamları hiç başlatma
+      if (useSettingsStore.getState().adsRemoved) {
+        setAdsRemovedInService(true);
+      }
+      initAds(); // adsRemoved ise erken döner (bloklamaz)
+
+      // IAP: satın alma/restore ile sahiplik onaylanınca reklamları kapat + kalıcı kaydet
+      initIap(() => {
+        setAdsRemovedInService(true);
+        useSettingsStore.getState().setAdsRemoved(true);
+      });
     }
     boot();
   // loadSettings/loadSave are stable Zustand actions

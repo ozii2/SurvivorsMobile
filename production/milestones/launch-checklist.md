@@ -21,7 +21,7 @@ Yayınlanmış AAB'ye sonradan reklam eklenemez. Kritik yol:
 
 - [ ] 👤 **A1. Google Play Developer hesabı** — $25 tek seferlik, kart + kimlik doğrulama (~1-2 gün onay). https://play.google.com/console/signup
 - [x] 🤖 **A2. Gizlilik politikası** — ✅ taslak yazıldı → `docs/legal/privacy-policy.md`
-- [ ] 👤 A2b. Politikayı bir URL'de yayınla (GitHub Pages / ücretsiz host) ve `app.json`'a bağla
+- [x] 👤 A2b. ✅ Politika yayında: https://ozii2.github.io/SurvivorsMobile/docs/legal/privacy-policy.html (GitHub Pages)
 - [x] 🤖 **A3. Store metinleri** — ✅ TR+EN → `docs/store/play-store-listing.md`
 - [x] 🤖 **A4. Data Safety formu** — ✅ taslak → `docs/store/data-safety.md`
 - [x] 🤖 **A5. İçerik derecelendirme** — ✅ IARC cevapları → `docs/store/data-safety.md`
@@ -32,8 +32,9 @@ Yayınlanmış AAB'ye sonradan reklam eklenemez. Kritik yol:
 - [ ] 👤 B1a. **Paketi kur**: `npx expo install react-native-google-mobile-ads`
 - [ ] 🤖/👤 B1b. **EAS dev build'e geçiş** (AdMob native modül, Expo Go'da çalışmaz): `eas build --profile development --platform android`
 - [ ] 👤 B1c. AdMob hesabı aç + gerçek App ID & reklam birimi ID'leri → `AdService.ts` + `app.json`'daki test ID'lerini değiştir (yayından önce)
-- [ ] 🤖 **B2. IAP** — "reklamsız yap" tek seferlik satın alma (expo-in-app-purchases / RevenueCat)
-- [ ] 👤 B2b. Play Console'da IAP ürünü tanımla + fiyat
+- [x] 🤖 **B2. IAP (KOD)** — ✅ `react-native-iap`, `IapService.ts` (ürün `remove_ads`, satın alma + restore), Settings'te `adsRemoved` kalıcı, `SettingsModal`'da "Reklamları Kaldır" + "Geri Yükle" butonları, boot'ta init + AdService'e bağlı. TypeScript temiz (tek eksik: paket kurulumu).
+- [ ] 👤 B2a. **Paketi kur**: `npx expo install react-native-iap`
+- [ ] 👤 B2b. Play Console'da `remove_ads` non-consumable ürünü tanımla + fiyat + lisanslı test hesabı ekle (gerçek test için)
 
 ## C. Build & yayın
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   Switch,
   StyleSheet,
   Modal,
+  Alert,
 } from 'react-native';
 import { useSettingsStore } from '../game/state/useSettingsStore';
 import { Settings } from '../services/SaveService';
+import { purchaseRemoveAds, restorePurchases, getRemoveAdsPrice } from '../services/IapService';
 
 interface Props {
   visible: boolean;
@@ -29,6 +31,30 @@ export function SettingsModal({ visible, onClose }: Props) {
   const setSoundEnabled = useSettingsStore(s => s.setSoundEnabled);
   const setMusicEnabled = useSettingsStore(s => s.setMusicEnabled);
   const setGraphicsQuality = useSettingsStore(s => s.setGraphicsQuality);
+  const adsRemoved = useSettingsStore(s => s.adsRemoved);
+  const [busy, setBusy] = useState(false);
+
+  const price = getRemoveAdsPrice();
+
+  const handleRemoveAds = async () => {
+    if (busy) return;
+    setBusy(true);
+    await purchaseRemoveAds(); // sonuç store'a listener üzerinden yansır
+    setBusy(false);
+  };
+
+  const handleRestore = async () => {
+    if (busy) return;
+    setBusy(true);
+    const found = await restorePurchases();
+    setBusy(false);
+    Alert.alert(
+      found ? 'Geri Yüklendi' : 'Satın Alma Bulunamadı',
+      found
+        ? 'Reklamsız sürüm geri yüklendi. Teşekkürler!'
+        : 'Bu hesaba bağlı bir satın alma bulunamadı.',
+    );
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -71,6 +97,30 @@ export function SettingsModal({ visible, onClose }: Props) {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+
+          {/* ── Reklamları Kaldır (IAP) ── */}
+          <View style={styles.iapSection}>
+            {adsRemoved ? (
+              <View style={styles.iapOwned}>
+                <Text style={styles.iapOwnedText}>✓ Reklamlar Kaldırıldı</Text>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.iapBtn, busy && styles.iapBtnDisabled]}
+                  onPress={handleRemoveAds}
+                  disabled={busy}
+                >
+                  <Text style={styles.iapBtnText}>
+                    {busy ? 'İşleniyor…' : `📺🚫 Reklamları Kaldır${price ? `  ${price}` : ''}`}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleRestore} disabled={busy}>
+                  <Text style={styles.restoreText}>Satın Alımları Geri Yükle</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -143,6 +193,49 @@ const styles = StyleSheet.create({
   },
   qualityBtnTextActive: {
     color: '#ffe066',
+  },
+  iapSection: {
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#2a2a4c',
+    paddingTop: 16,
+  },
+  iapBtn: {
+    backgroundColor: '#2a7d46',
+    borderWidth: 1,
+    borderColor: '#3fd67a',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  iapBtnDisabled: {
+    opacity: 0.5,
+  },
+  iapBtnText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  restoreText: {
+    color: '#8888bb',
+    fontSize: 13,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  iapOwned: {
+    backgroundColor: 'rgba(63,214,122,0.12)',
+    borderWidth: 1,
+    borderColor: '#2a7d46',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  iapOwnedText: {
+    color: '#3fd67a',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   closeBtn: {
     backgroundColor: '#3a3a6c',
