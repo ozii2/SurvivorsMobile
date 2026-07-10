@@ -27,6 +27,8 @@ import { TutorialOverlay } from './src/ui/TutorialOverlay';
 import { CharacterSelectScreen } from './src/ui/CharacterSelectScreen';
 import { UpgradeShopScreen } from './src/ui/UpgradeShopScreen';
 import { StatsScreen } from './src/ui/StatsScreen';
+import { initAds, showRewarded, maybeShowInterstitial } from './src/services/AdService';
+import { useRewardedReady } from './src/hooks/useAds';
 import { useGameEngine } from './src/hooks/useGameEngine';
 import { useGameStore } from './src/game/state/useGameStore';
 import { useSaveStore } from './src/game/state/useSaveStore';
@@ -70,7 +72,11 @@ function GameScreen({
     chooseUpgrade: _chooseUpgrade,
     pauseGame,
     restartGame,
+    reviveRun,
   } = useGameEngine(startCharacter);
+
+  // Ödüllü reklamla diriliş — run başına 1 kez
+  const [reviveUsed, setReviveUsed] = useState(false);
 
   const chooseUpgrade = useCallback((choice: UpgradeOption) => {
     hapticSelection();
@@ -80,6 +86,7 @@ function GameScreen({
 
   const pendingChoices = useGameStore(s => s.pendingUpgradeChoices);
   const isGameOver = useGameStore(s => s.isGameOver);
+  const rewardedReady = useRewardedReady(isGameOver && !reviveUsed);
   const isPaused = useGameStore(s => s.isPaused);
   const level = useGameStore(s => s.level);
   const waveNumber = useGameStore(s => s.waveNumber);
@@ -145,6 +152,28 @@ function GameScreen({
   const handleRestart = useCallback(() => {
     restartGame();
   }, [restartGame]);
+
+  // ─── Reklam bağlı akışlar ──────────────────────────────────────────────────
+  // Game over → "Tekrar Oyna": run sonu, frekans limitli geçiş reklamı
+  const handleGameOverRestart = useCallback(() => {
+    maybeShowInterstitial();
+    setReviveUsed(false); // yeni run
+    restartGame();
+  }, [restartGame]);
+
+  // Game over → "Ana Menü": run sonu, frekans limitli geçiş reklamı
+  const handleGameOverExit = useCallback(() => {
+    maybeShowInterstitial();
+    onExit();
+  }, [onExit]);
+
+  // Ödüllü reklam izle → diril (yalnızca ödül kazanılırsa)
+  const handleReviveAd = useCallback(() => {
+    showRewarded(() => {
+      setReviveUsed(true);
+      reviveRun();
+    });
+  }, [reviveRun]);
 
   return (
     <View style={styles.gameContainer}>
@@ -249,10 +278,15 @@ function GameScreen({
             maxCombo={maxComboFromStore}
             newAchievements={runAchievements}
           />
-          <TouchableOpacity style={styles.btn} onPress={handleRestart}>
+          {!reviveUsed && rewardedReady && (
+            <TouchableOpacity style={[styles.btn, styles.btnRevive]} onPress={handleReviveAd}>
+              <Text style={styles.btnText}>📺 Reklam İzle & Devam Et</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.btn} onPress={handleGameOverRestart}>
             <Text style={styles.btnText}>Tekrar Oyna</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={onExit}>
+          <TouchableOpacity style={[styles.btn, styles.btnSecondary]} onPress={handleGameOverExit}>
             <Text style={styles.btnText}>Ana Menü</Text>
           </TouchableOpacity>
         </View>
@@ -694,6 +728,7 @@ export default function App() {
       await loadSettings();
       await loadSave();
       await initAudio({ soundEnabled: soundOn, musicEnabled: musicOn });
+      initAds(); // AdMob'u başlat + reklamları önden yükle (bloklamaz)
     }
     boot();
   // loadSettings/loadSave are stable Zustand actions
@@ -926,6 +961,10 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     backgroundColor: '#252540',
+  },
+  btnRevive: {
+    backgroundColor: '#2a7d46',
+    borderColor: '#3fd67a',
   },
   btnText: {
     color: '#ffffff',

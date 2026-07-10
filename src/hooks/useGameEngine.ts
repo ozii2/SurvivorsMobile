@@ -62,6 +62,34 @@ export function useGameEngine(characterId: CharacterId = 'warrior') {
     resetGame();
   }, [resetGame, makeState]);
 
+  const syncFromGameState = useGameStore(s => s.syncFromGameState);
+
+  /**
+   * Ödüllü reklam izlendikten sonra oyuncuyu diriltir (game over'dan devam).
+   * HP'yi doldurur, 3 sn dokunulmazlık verir, ekrandaki düşmanları temizler
+   * ve oyunu kaldığı yerden sürdürür. Run başına 1 kez kullanılmalı (çağıran
+   * tarafta sınırlanır).
+   */
+  const reviveRun = useCallback(() => {
+    const gs = gameStateRef.current;
+    const p = gs.player;
+
+    p.hp = p.maxHp;
+    p.invincibleTimer = 3.0; // 3 sn dokunulmazlık — anında tekrar ölmeyi önler
+
+    // Ekrandaki tüm aktif düşmanları temizle (kalabalıktan anında ölmeyi önler)
+    for (let i = 0; i < gs.enemies.length; i++) {
+      gs.enemies[i].active = false;
+    }
+
+    gs.isGameOver = false;
+    gs.isPaused = false;
+    gs.killCombo = 0;
+
+    // Store'u anında güncelle ki game over overlay'i beklemeden kapansın
+    syncFromGameState(gs);
+  }, [syncFromGameState]);
+
   return {
     gameStateRef,
     joystickX,
@@ -70,5 +98,6 @@ export function useGameEngine(characterId: CharacterId = 'warrior') {
     chooseUpgrade,
     pauseGame,
     restartGame,
+    reviveRun,
   };
 }

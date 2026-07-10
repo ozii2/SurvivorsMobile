@@ -30,9 +30,7 @@
         "monochromeImage": "./assets/app_icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": []
     },
     "androidStatusBar": {
       "hidden": true,
@@ -46,6 +44,12 @@
         "expo-image-picker",
         {
           "photosPermission": "Oyunda avatar kullanmak için galeri erişimi gerekiyor."
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713"
         }
       ]
     ],
