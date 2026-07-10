@@ -20,15 +20,22 @@ import mobileAds, {
 } from 'react-native-google-mobile-ads';
 
 // ─── Reklam birimi ID'leri ────────────────────────────────────────────────────
-// Geliştirmede Google'ın resmî TEST ID'leri kullanılır (gerçek gelir üretmez,
-// hesabın banlanmaz). Yayından ÖNCE aşağıdaki production ID'leri AdMob
-// konsolundan alınan gerçek değerlerle değiştir.
-// TODO(launch): production reklam birimi ID'lerini gir.
+// USE_TEST_ADS true iken, build türü (debug/release, __DEV__) fark etmeksizin
+// Google'ın resmî TEST reklamları gösterilir — gerçek gelir üretmez, hesabın
+// banlanmaz. Böylece standalone (preview/release) APK'da da test reklamları
+// görünür ve Metro'ya gerek kalmaz.
+//
+// YAYINA ÇIKMADAN ÖNCE (production build):
+//   1) AdMob konsolundan gerçek reklam birimi ID'lerini al,
+//   2) PROD_*_UNIT_ID değerlerine yaz,
+//   3) USE_TEST_ADS = false yap.
+// TODO(launch): production ID'lerini gir + USE_TEST_ADS = false.
+const USE_TEST_ADS = true;
 const PROD_INTERSTITIAL_UNIT_ID = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
 const PROD_REWARDED_UNIT_ID = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
 
-const INTERSTITIAL_UNIT_ID = __DEV__ ? TestIds.INTERSTITIAL : PROD_INTERSTITIAL_UNIT_ID;
-const REWARDED_UNIT_ID = __DEV__ ? TestIds.REWARDED : PROD_REWARDED_UNIT_ID;
+const INTERSTITIAL_UNIT_ID = USE_TEST_ADS ? TestIds.INTERSTITIAL : PROD_INTERSTITIAL_UNIT_ID;
+const REWARDED_UNIT_ID = USE_TEST_ADS ? TestIds.REWARDED : PROD_REWARDED_UNIT_ID;
 
 // ─── Frekans limiti (interstitial) ────────────────────────────────────────────
 const MIN_INTERSTITIAL_INTERVAL_MS = 90_000; // en az 90 sn arayla göster
