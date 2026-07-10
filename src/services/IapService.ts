@@ -14,6 +14,7 @@
  *      test hesabı eklenmelidir. Bu dosya react-native-iap v12 API'sine göredir;
  *      farklı bir sürüm kurarsan çağrıları o sürümün dokümanıyla teyit et.
  */
+import type { EmitterSubscription } from 'react-native';
 import {
   initConnection,
   endConnection,
@@ -26,7 +27,6 @@ import {
   type Product,
   type Purchase,
   type PurchaseError,
-  type EmitterSubscription,
 } from 'react-native-iap';
 
 export const PRODUCT_REMOVE_ADS = 'remove_ads';
