@@ -32,9 +32,10 @@ Yayınlanmış AAB'ye sonradan reklam eklenemez. Kritik yol:
 - [ ] 👤 B1a. **Paketi kur**: `npx expo install react-native-google-mobile-ads`
 - [ ] 🤖/👤 B1b. **EAS dev build'e geçiş** (AdMob native modül, Expo Go'da çalışmaz): `eas build --profile development --platform android`
 - [ ] 👤 B1c. AdMob hesabı aç + gerçek App ID & reklam birimi ID'leri → `AdService.ts` + `app.json`'daki test ID'lerini değiştir (yayından önce)
-- [x] 🤖 **B2. IAP (KOD)** — ✅ `react-native-iap`, `IapService.ts` (ürün `remove_ads`, satın alma + restore), Settings'te `adsRemoved` kalıcı, `SettingsModal`'da "Reklamları Kaldır" + "Geri Yükle" butonları, boot'ta init + AdService'e bağlı. TypeScript temiz (tek eksik: paket kurulumu).
-- [ ] 👤 B2a. **Paketi kur**: `npx expo install react-native-iap`
-- [ ] 👤 B2b. Play Console'da `remove_ads` non-consumable ürünü tanımla + fiyat + lisanslı test hesabı ekle (gerçek test için)
+- [~] 🤖 **B2. IAP** — ⚠️ `react-native-iap` 12.x RN 0.81'de DERLENMİYOR (currentActivity API kaldırılmış). Geçici olarak devre dışı (IapService stub, UI gizli). UI/store/kalıcılık mantığı hazır bekliyor.
+- [ ] 👤 B2a. `react-native-iap`'ı kaldır: `npm uninstall react-native-iap`
+- [ ] 🤖 B2b. IAP'yi **expo-iap** ile geri ekle (RN 0.81 / Yeni Mimari uyumlu) — Play Console hazır olunca
+- [ ] 👤 B2c. Play Console'da `remove_ads` non-consumable ürünü + fiyat + lisanslı test hesabı
 
 ## C. Build & yayın
 
