@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSettingsStore } from '../game/state/useSettingsStore';
 import { Settings } from '../services/SaveService';
-import { purchaseRemoveAds, restorePurchases, getRemoveAdsPrice } from '../services/IapService';
+import { purchaseRemoveAds, restorePurchases, getRemoveAdsPrice, isIapAvailable } from '../services/IapService';
 
 interface Props {
   visible: boolean;
@@ -99,7 +99,8 @@ export function SettingsModal({ visible, onClose }: Props) {
             </View>
           </View>
 
-          {/* ── Reklamları Kaldır (IAP) ── */}
+          {/* ── Reklamları Kaldır (IAP) — expo-iap eklenince görünür ── */}
+          {isIapAvailable() && (
           <View style={styles.iapSection}>
             {adsRemoved ? (
               <View style={styles.iapOwned}>
@@ -122,6 +123,7 @@ export function SettingsModal({ visible, onClose }: Props) {
               </>
             )}
           </View>
+          )}
 
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>Kapat</Text>
