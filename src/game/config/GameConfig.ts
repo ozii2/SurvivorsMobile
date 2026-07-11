@@ -39,6 +39,11 @@ export const GameConfig = {
   // Fixed physics step
   FIXED_STEP: 1 / 60,
   MAX_DELTA: 0.05,           // cap at 50ms to prevent spiral of death
+
+  // Balance / economy knobs (tek noktadan zorluk ayarı)
+  BASE_DAMAGE_MULT: 0.65,    // TÜM silahların global hasar çarpanı (1.0 = eski). Düşür = daha zor.
+  GOLD_PER_WAVE: 5,          // run sonu: dalga başına altın (eski: 10)
+  GOLD_PER_KILL: 0.25,       // run sonu: öldürme başına altın (eski: 0.5)
 } as const;
 
 export const LightningConfig: Record<number, { damage: number; targets: number; cooldown: number }> = {

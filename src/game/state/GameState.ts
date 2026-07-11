@@ -109,7 +109,7 @@ export function createInitialGameState(characterId: CharacterId = 'warrior'): Ga
     lifesteal: 0,
     characterId,
     ownedPassiveItems: [],
-    mightMultiplier: 1.0,
+    mightMultiplier: GameConfig.BASE_DAMAGE_MULT,
     cooldownMultiplier: 1.0,
     bonusGarlicRadius: 0,
     bonusPierceLifetime: 0,

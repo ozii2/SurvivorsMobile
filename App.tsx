@@ -35,6 +35,7 @@ import { useGameStore } from './src/game/state/useGameStore';
 import { useSaveStore } from './src/game/state/useSaveStore';
 import { useSettingsStore } from './src/game/state/useSettingsStore';
 import { UpgradeOption, CharacterId } from './src/game/state/types';
+import { GameConfig } from './src/game/config/GameConfig';
 import {
   initAudio, playBgMusic, stopBgMusic, pauseBgMusic, resumeBgMusic,
   playSfxHit, playSfxLevelUp, setSoundEnabled, setMusicEnabled,
@@ -133,7 +134,7 @@ function GameScreen({
   useEffect(() => {
     if (isGameOver) {
       const gs = gameStateRef.current;
-      const goldEarned = waveNumber * 10 + Math.floor(gs.totalKillsThisRun * 0.5);
+      const goldEarned = waveNumber * GameConfig.GOLD_PER_WAVE + Math.floor(gs.totalKillsThisRun * GameConfig.GOLD_PER_KILL);
       recordGame(waveNumber, gameTime, goldEarned, gs.bossKilledThisRun, gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
       const newAchievements = checkAchievements(gs, saveData);
       if (newAchievements.length > 0) {

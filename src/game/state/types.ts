@@ -64,7 +64,7 @@ export interface PlayerEntity extends Entity {
   // Character & item stat modifiers
   characterId: CharacterId;
   ownedPassiveItems: PassiveItemId[];
-  mightMultiplier: number;        // damage multiplier (1.0 = normal)
+  mightMultiplier: number;        // damage multiplier (base = GameConfig.BASE_DAMAGE_MULT)
   cooldownMultiplier: number;     // cooldown multiplier (1.0 = normal, 0.9 = 10% faster)
   bonusGarlicRadius: number;      // additive fraction (0.2 = +20% radius)
   bonusPierceLifetime: number;    // additive fraction (0.25 = +25% lifetime)
