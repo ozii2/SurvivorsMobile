@@ -121,8 +121,11 @@ export function GameCanvas({
     picture.value = _recorder.finishRecordingAsPicture();
 
     // ── UI sync (~10 Hz) ──
+    // Game over anında zamanlayıcıyı beklemeden zorla sync et: bir sonraki
+    // karede isPaused=true yüzünden döngü baştan return edeceği için, "ÖLDÜN"
+    // ekranını tetikleyen isGameOver bu karede store'a yansımalı.
     syncTimer.current += dt;
-    if (syncTimer.current >= GameConfig.UI_SYNC_INTERVAL) {
+    if (syncTimer.current >= GameConfig.UI_SYNC_INTERVAL || gs.isGameOver) {
       syncTimer.current = 0;
       syncStore(gs);
 
