@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSettingsStore } from '../game/state/useSettingsStore';
 import { Settings } from '../services/SaveService';
-import { purchaseRemoveAds, restorePurchases, getRemoveAdsPrice, isIapAvailable } from '../services/IapService';
+import { purchaseRemoveAds, restorePurchases } from '../services/IapService';
+import { useRemoveAdsInfo } from '../hooks/useIap';
 
 interface Props {
   visible: boolean;
@@ -34,7 +35,8 @@ export function SettingsModal({ visible, onClose }: Props) {
   const adsRemoved = useSettingsStore(s => s.adsRemoved);
   const [busy, setBusy] = useState(false);
 
-  const price = getRemoveAdsPrice();
+  // IAP hazır/fiyat durumu reaktif — yalnızca modal açıkken (visible) yoklanır.
+  const { available: iapAvailable, price } = useRemoveAdsInfo(visible);
 
   const handleRemoveAds = async () => {
     if (busy) return;
@@ -99,8 +101,8 @@ export function SettingsModal({ visible, onClose }: Props) {
             </View>
           </View>
 
-          {/* ── Reklamları Kaldır (IAP) — expo-iap eklenince görünür ── */}
-          {isIapAvailable() && (
+          {/* ── Reklamları Kaldır (IAP) — bağlantı + ürün hazırsa görünür ── */}
+          {(iapAvailable || adsRemoved) && (
           <View style={styles.iapSection}>
             {adsRemoved ? (
               <View style={styles.iapOwned}>
