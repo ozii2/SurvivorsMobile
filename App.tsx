@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -97,7 +97,6 @@ function GameScreen({
   const hp = useGameStore(s => s.hp);
   const recordGame = useSaveStore(s => s.recordGame);
   const unlockAchievements = useSaveStore(s => s.unlockAchievements);
-  const saveData = useSaveStore(s => s);
   const tutorialCompleted = useSaveStore(s => s.tutorialCompleted);
   const isLoaded = useSaveStore(s => s.isLoaded);
 
@@ -130,19 +129,26 @@ function GameScreen({
     prevHpRef.current = hp;
   }, [hp, isGameOver]);
 
-  // Save stats + check achievements on game over
+  // Diriliş sonrası ikinci ölümde run'ın tekrar kaydedilmesini engeller
+  const runRecordedRef = useRef(false);
+
+  // Run'ı game over ekranından çıkarken tek sefer kaydet; dirilişten sonraki ilerleme de dahil olsun
+  const finalizeRun = useCallback(() => {
+    if (runRecordedRef.current) return;
+    runRecordedRef.current = true;
+    // Store değil ref: dirilişten sonraki en güncel değerler burada
+    const gs = gameStateRef.current;
+    const goldEarned = gs.waveNumber * GameConfig.GOLD_PER_WAVE + Math.floor(gs.totalKillsThisRun * GameConfig.GOLD_PER_KILL);
+    recordGame(gs.waveNumber, gs.gameTime, goldEarned, gs.bossKilledThisRun, gs.gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
+    // getState(): recordGame sonrası güncel save verisiyle kontrol et
+    const newAchievements = checkAchievements(gs, useSaveStore.getState());
+    if (newAchievements.length > 0) unlockAchievements(newAchievements);
+  }, [gameStateRef, recordGame, unlockAchievements]);
+
+  // Game over ekranı için yalnızca önizleme; kayıt finalizeRun'da yapılır
   useEffect(() => {
     if (isGameOver) {
-      const gs = gameStateRef.current;
-      const goldEarned = waveNumber * GameConfig.GOLD_PER_WAVE + Math.floor(gs.totalKillsThisRun * GameConfig.GOLD_PER_KILL);
-      recordGame(waveNumber, gameTime, goldEarned, gs.bossKilledThisRun, gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
-      const newAchievements = checkAchievements(gs, saveData);
-      if (newAchievements.length > 0) {
-        unlockAchievements(newAchievements);
-        setRunAchievements(newAchievements);
-      } else {
-        setRunAchievements([]);
-      }
+      setRunAchievements(checkAchievements(gameStateRef.current, useSaveStore.getState()));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameOver]);
@@ -151,23 +157,29 @@ function GameScreen({
     // Zustand sync zaten game over state'ini güncelledi; overlay buna göre gösterilir
   }, []);
 
+  // Duraklatma menüsünden yeniden başlama: terk edilen run kaydedilmez
   const handleRestart = useCallback(() => {
+    runRecordedRef.current = false;
+    setReviveUsed(false); // yeni run'da diriliş hakkı geri gelsin
     restartGame();
   }, [restartGame]);
 
   // ─── Reklam bağlı akışlar ──────────────────────────────────────────────────
   // Game over → "Tekrar Oyna": run sonu, frekans limitli geçiş reklamı
   const handleGameOverRestart = useCallback(() => {
+    finalizeRun();
     maybeShowInterstitial();
-    setReviveUsed(false); // yeni run
+    runRecordedRef.current = false; // yeni run
+    setReviveUsed(false);
     restartGame();
-  }, [restartGame]);
+  }, [finalizeRun, restartGame]);
 
   // Game over → "Ana Menü": run sonu, frekans limitli geçiş reklamı
   const handleGameOverExit = useCallback(() => {
+    finalizeRun();
     maybeShowInterstitial();
     onExit();
-  }, [onExit]);
+  }, [finalizeRun, onExit]);
 
   // Ödüllü reklam izle → diril (yalnızca ödül kazanılırsa)
   const handleReviveAd = useCallback(() => {
