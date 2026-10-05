@@ -31,8 +31,8 @@ export function tickWaves(
   }
 
   if (newWaveIndex !== gs.currentWaveIndex) {
-    // Check no-damage before wave 3 (index 3 = 2:30)
-    if (newWaveIndex === 3 && gs.totalDamageTaken === 0) {
+    // Dalga 3'e hasarsız ulaşıldı mı (index 2 = dalga 3, 1:30); eskiden index 3 = dalga 4'e bakıyordu
+    if (newWaveIndex === 2 && gs.totalDamageTaken === 0) {
       gs.reachedWave3NoDamage = true;
     }
     gs.currentWaveIndex = newWaveIndex;

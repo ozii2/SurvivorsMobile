@@ -1,4 +1,5 @@
 import { PassiveItemId, WeaponId, EvolvedWeaponId, GameState, UpgradeOption } from '../state/types';
+import { GameConfig } from './GameConfig';
 
 export interface PassiveItemDefinition {
   id: PassiveItemId;
@@ -81,7 +82,7 @@ export const EVOLUTION_RECIPES: EvolutionRecipe[] = [
     requiredItemId: 'power_stone',
     evolvedWeaponId: 'soul_whip',
     evolvedName: 'Ruh Kırbacı',
-    evolvedDescription: '270° geniş sweep, düşmanları geri iter.',
+    evolvedDescription: 'Her vuruşta 90° dönen 270°\'lik süpürme yapar, düşmanları geri iter.',
   },
   {
     baseWeaponId: 'lightning',
@@ -95,7 +96,7 @@ export const EVOLUTION_RECIPES: EvolutionRecipe[] = [
     requiredItemId: 'garlic_essence',
     evolvedWeaponId: 'death_aura',
     evolvedName: 'Ölüm Bulutsu',
-    evolvedDescription: 'Sarımsak alanı 2× büyür. Her tick %0.8 can çalar.',
+    evolvedDescription: 'Sarımsak alanı ~1,25 kat büyür. Verdiği hasarın %0,8\'i kadar can çalar.',
   },
   {
     baseWeaponId: 'cross',
@@ -113,7 +114,7 @@ export function getPassiveItem(id: PassiveItemId): PassiveItemDefinition {
 export function checkEvolution(gs: GameState): UpgradeOption | null {
   const p = gs.player;
   for (const weapon of p.weapons) {
-    if (weapon.level < 8) continue;
+    if (weapon.level < GameConfig.MAX_WEAPON_LEVEL) continue;
     const recipe = EVOLUTION_RECIPES.find(r => r.baseWeaponId === weapon.id);
     if (!recipe) continue;
     if (!p.ownedPassiveItems.includes(recipe.requiredItemId)) continue;

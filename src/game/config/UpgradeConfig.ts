@@ -1,4 +1,6 @@
-import { UpgradeOption, PassiveItemId } from '../state/types';
+import { UpgradeOption, PassiveItemId, PlayerEntity, UpgradeType, StatUpgradeType } from '../state/types';
+import { EVOLUTION_RECIPES } from './PassiveItemConfig';
+import { GameConfig } from './GameConfig';
 
 export const ALL_UPGRADES: UpgradeOption[] = [
   // ─── New weapons ──────────────────────────────────────────────────────────
@@ -179,31 +181,84 @@ export const ALL_UPGRADES: UpgradeOption[] = [
 ];
 
 // Evolved weapon IDs — excluded from normal upgrade pool
-const EVOLVED_WEAPON_IDS = new Set([
-  'blood_blade', 'hellfire', 'soul_whip', 'thunder_storm', 'death_aura', 'divine_blade',
-]);
+// Tariflerden türetilir: yeni evrim eklenince tek yer güncellenir
+const EVOLVED_WEAPON_IDS = new Set<string>(EVOLUTION_RECIPES.map(r => r.evolvedWeaponId));
+
+// Havuz boşalınca pencere eksik kalmasın diye kullanılan yedekler; normal havuzun parçası değil
+const FALLBACK_OPTIONS: UpgradeOption[] = [
+  {
+    id: 'fallback_heal',
+    type: 'heal',
+    label: 'Can Yenile',
+    description: `+${GameConfig.FALLBACK_HEAL} can yeniler.`,
+  },
+  {
+    id: 'fallback_gold',
+    type: 'gold',
+    label: 'Altın Kesesi',
+    description: `+${GameConfig.FALLBACK_GOLD} altın (run sonunda eklenir).`,
+  },
+];
+
+// statPicks'e tip güvenli erişim için daraltma
+function isStatUpgrade(t: UpgradeType): t is StatUpgradeType {
+  return t === 'max_hp' || t === 'speed' || t === 'armor' || t === 'magnet';
+}
 
 export function pickUpgradeOptions(
-  ownedWeaponIds: string[],
-  ownedItemIds: PassiveItemId[],
+  p: PlayerEntity,
   count = 3
 ): UpgradeOption[] {
+  // Evrimli silah ana silahının sahipliğini de sayar; yoksa ana silah tekrar teklif edilir
+  const ownedWeaponRoots = new Set<string>();
+  for (let i = 0; i < p.weapons.length; i++) {
+    const id = p.weapons[i].id;
+    ownedWeaponRoots.add(id);
+    const recipe = EVOLUTION_RECIPES.find(r => r.evolvedWeaponId === id);
+    if (recipe) ownedWeaponRoots.add(recipe.baseWeaponId);
+  }
+  const hasFreeSlot = p.weapons.length < GameConfig.MAX_WEAPON_SLOTS;
+
   const available = ALL_UPGRADES.filter(u => {
     if (u.type === 'weapon_new' && u.weaponId) {
-      // Don't offer evolved weapons as new pickups or already-owned weapons
-      return !ownedWeaponIds.includes(u.weaponId) && !EVOLVED_WEAPON_IDS.has(u.weaponId);
+      // Don't offer evolved weapons as new pickups or already-owned weapons; slot doluysa yeni silah yok
+      return hasFreeSlot && !ownedWeaponRoots.has(u.weaponId) && !EVOLVED_WEAPON_IDS.has(u.weaponId);
     }
     if (u.type === 'weapon_upgrade' && u.weaponId) {
-      // Only offer upgrade for owned non-evolved weapons
-      return ownedWeaponIds.includes(u.weaponId) && !EVOLVED_WEAPON_IDS.has(u.weaponId);
+      // Yalnızca sahipli, evrimsiz ve tavana ulaşmamış silah; yoksa seçim boşa gider
+      if (EVOLVED_WEAPON_IDS.has(u.weaponId)) return false;
+      for (let i = 0; i < p.weapons.length; i++) {
+        const w = p.weapons[i];
+        if (w.id === u.weaponId) return w.level < GameConfig.MAX_WEAPON_LEVEL;
+      }
+      return false;
     }
+    // Sınırsız statlar havuzu hiç boşaltmıyordu; run başına seçim tavanı
+    if (isStatUpgrade(u.type)) return p.statPicks[u.type] < GameConfig.STAT_PICK_CAP;
+    if (u.type === 'crit') return p.critChance < GameConfig.CRIT_CAP;
+    if (u.type === 'lifesteal') return p.lifesteal < GameConfig.LIFESTEAL_CAP;
     if (u.type === 'passive_item' && u.passiveItemId) {
       // Don't offer already-owned items
-      return !ownedItemIds.includes(u.passiveItemId);
+      return !p.ownedPassiveItems.includes(u.passiveItemId);
     }
     return true;
   });
 
-  const shuffled = available.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  // Fisher–Yates: sort(() => Math.random() - 0.5) eşit dağılım vermiyor
+  for (let i = available.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = available[i];
+    available[i] = available[j];
+    available[j] = tmp;
+  }
+  const result = available.slice(0, count);
+
+  // Havuz yetmezse boşlukları sırayla yedeklerle doldur
+  for (let i = 0; i < FALLBACK_OPTIONS.length && result.length < count; i++) {
+    const fb = FALLBACK_OPTIONS[i];
+    // Can doluyken "Can Yenile" boşa gider; atla
+    if (fb.type === 'heal' && p.hp >= p.maxHp) continue;
+    result.push(fb);
+  }
+  return result;
 }

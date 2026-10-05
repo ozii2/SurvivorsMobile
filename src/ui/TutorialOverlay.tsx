@@ -30,7 +30,7 @@ const STEPS: Step[] = [
   {
     icon: '🕹️',
     title: 'Hareket Et',
-    desc: 'Sağ alttaki joystick\'i kullanarak karakterini yönlendir.',
+    desc: 'Ekranda herhangi bir yere dokunup sürükleyerek karakterini yönlendir.',
     trigger: 'time',
     autoMs: 5000,
   },
@@ -58,7 +58,7 @@ const STEPS: Step[] = [
   {
     icon: '💀',
     title: 'Hayatta Kal!',
-    desc: '8 dakika boyunca hayatta kalmaya çalış. İyi şanslar!',
+    desc: 'Olabildiğince uzun hayatta kal. 9. dakikada kaos başlar!',
     trigger: 'time',
     autoMs: 2500,
   },

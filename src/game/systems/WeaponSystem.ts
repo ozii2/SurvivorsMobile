@@ -1,11 +1,21 @@
-import { GameState, WeaponInstance, ProjectileEntity } from '../state/types';
+import { GameState, WeaponInstance, ProjectileEntity, PlayerEntity, EnemyEntity } from '../state/types';
 import { spawnProjectile } from './ProjectileSystem';
-import { LightningConfig, GarlicConfig, CrossConfig } from '../config/GameConfig';
+import { LightningConfig, GarlicConfig, CrossConfig, DeathAuraConfig } from '../config/GameConfig';
 import { spawnParticle } from './ParticleSystem';
 import { handleEnemyDeath } from './CollisionSystem';
 import { spawnDamageNumber } from './DamageNumberSystem';
 
 const TWO_PI = Math.PI * 2;
+
+// ─── Module-level tamponlar: tick başına dizi/nesne ayırmamak için ──────────
+// Yörünge silahlarının (fireball/hellfire/divine_blade) mermi yuvaları; her çağrıda length = 0
+const _slotBuf: ProjectileEntity[] = [];
+// _findNearestEnemies sonucu (en yakından uzağa) ve mesafe kareleri
+const _nearBuf: EnemyEntity[] = [];
+const _nearDistBuf: number[] = [];
+// Sabit yön dizileri
+const CROSS_DIRS: readonly (readonly [number, number])[] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const WHIP_DIRS: readonly number[] = [-1, 1];
 
 // ─── Dagger ──────────────────────────────────────────────────────────────────
 function tickDagger(gs: GameState, weapon: WeaponInstance, dt: number): void {
@@ -44,7 +54,8 @@ function tickFireball(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const resetHits = weapon.cooldownTimer <= 0;
   if (resetHits) weapon.cooldownTimer = 0.70;
 
-  const slots: ProjectileEntity[] = [];
+  const slots = _slotBuf;
+  slots.length = 0;
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
     if (p.active && p.weaponId === 'fireball') slots.push(p);
@@ -87,26 +98,48 @@ function tickWhip(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const px = gs.player.position.x;
   const py = gs.player.position.y;
 
-  for (const dir of [-1, 1]) {
+  for (let d = 0; d < WHIP_DIRS.length; d++) {
+    const dir = WHIP_DIRS[d];
     spawnProjectile(gs, px + dir * (length / 2), py,
       dir * 50, 0, damage, 0.2, length / 2, 'whip', isCrit);
   }
 }
 
 // ─── Lightning ────────────────────────────────────────────────────────────────
-function _findNearestEnemies(gs: GameState, count: number): typeof gs.enemies {
+/**
+ * En yakın `count` düşmanı _nearBuf'a (yakından uzağa) yazar, bulunan sayıyı döndürür.
+ * Sort + nesne dizisi yerine sıralı ekleme: k küçük (≤ 8 + bonus), ayırma yok.
+ */
+function _findNearestEnemies(gs: GameState, count: number): number {
+  if (count <= 0) return 0;
   const px = gs.player.position.x;
   const py = gs.player.position.y;
-  const withDist: { e: (typeof gs.enemies)[0]; d: number }[] = [];
+  let n = 0;
   for (let i = 0; i < gs.enemies.length; i++) {
     const e = gs.enemies[i];
     if (!e.active) continue;
     const dx = e.position.x - px;
     const dy = e.position.y - py;
-    withDist.push({ e, d: dx * dx + dy * dy });
+    const d = dx * dx + dy * dy;
+
+    let j: number;
+    if (n < count) {
+      j = n++;
+    } else if (d < _nearDistBuf[n - 1]) {
+      j = n - 1;  // en uzaktakini at
+    } else {
+      continue;
+    }
+    // Daha uzak olanları bir sağa kaydırıp doğru yere yerleştir
+    while (j > 0 && _nearDistBuf[j - 1] > d) {
+      _nearDistBuf[j] = _nearDistBuf[j - 1];
+      _nearBuf[j] = _nearBuf[j - 1];
+      j--;
+    }
+    _nearDistBuf[j] = d;
+    _nearBuf[j] = e;
   }
-  withDist.sort((a, b) => a.d - b.d);
-  return withDist.slice(0, count).map(x => x.e);
+  return n;
 }
 
 function _spawnLightningParticles(gs: GameState, from: { x: number; y: number }, to: { x: number; y: number }): void {
@@ -141,13 +174,14 @@ function tickLightning(gs: GameState, weapon: WeaponInstance, dt: number): void 
   weapon.cooldownTimer = cfg.cooldown * gs.player.cooldownMultiplier;
 
   const totalTargets = cfg.targets + gs.player.bonusLightningTargets;
-  const targets = _findNearestEnemies(gs, totalTargets);
+  const targetCount = _findNearestEnemies(gs, totalTargets);
   const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
   const rawDmg = Math.round(cfg.damage * gs.player.mightMultiplier);
   const dmg = isCrit ? rawDmg * 2 : rawDmg;
   if (isCrit) gs.totalCritsThisRun++;
 
-  for (const enemy of targets) {
+  for (let t = 0; t < targetCount; t++) {
+    const enemy = _nearBuf[t];
     enemy.hp -= dmg;
     enemy.hitFlashTimer = 0.12;
     spawnDamageNumber(gs, enemy.position.x, enemy.position.y, Math.round(dmg), isCrit);
@@ -157,6 +191,17 @@ function tickLightning(gs: GameState, weapon: WeaponInstance, dt: number): void 
 }
 
 // ─── Garlic ───────────────────────────────────────────────────────────────────
+/** Sarımsak hasar yarıçapı. Tick ve çizim aynı formülü kullansın diye tek yerde. */
+export function garlicEffectiveRadius(p: PlayerEntity, level: number): number {
+  const lv = Math.min(level, 8) as keyof typeof GarlicConfig;
+  return GarlicConfig[lv].radius * (1 + p.bonusGarlicRadius);
+}
+
+/** Ölüm Bulutu hasar yarıçapı. Tick ve çizim aynı formülü kullansın diye tek yerde. */
+export function deathAuraEffectiveRadius(p: PlayerEntity): number {
+  return DeathAuraConfig.baseRadius * (1 + p.bonusGarlicRadius);
+}
+
 function tickGarlic(gs: GameState, weapon: WeaponInstance, dt: number): void {
   weapon.cooldownTimer -= dt;
   if (weapon.cooldownTimer > 0) return;
@@ -169,7 +214,7 @@ function tickGarlic(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const rawDmg = Math.round(cfg.damage * gs.player.mightMultiplier);
   const dmg = isCrit ? rawDmg * 2 : rawDmg;
   if (isCrit) gs.totalCritsThisRun++;
-  const effectiveRadius = cfg.radius * (1 + gs.player.bonusGarlicRadius);
+  const effectiveRadius = garlicEffectiveRadius(gs.player, weapon.level);
   const radSq = effectiveRadius * effectiveRadius;
   const px = gs.player.position.x;
   const py = gs.player.position.y;
@@ -205,10 +250,10 @@ function tickCross(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const px = gs.player.position.x;
   const py = gs.player.position.y;
 
-  const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-  for (const [vx, vy] of dirs) {
+  for (let d = 0; d < CROSS_DIRS.length; d++) {
+    const dir = CROSS_DIRS[d];
     spawnProjectile(gs, px, py,
-      vx * speed, vy * speed,
+      dir[0] * speed, dir[1] * speed,
       dmg, lifetime, cfg.radius, 'cross', isCrit);
   }
 }
@@ -249,7 +294,8 @@ function tickHellfire(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const resetHits = weapon.cooldownTimer <= 0;
   if (resetHits) weapon.cooldownTimer = 0.45 * gs.player.cooldownMultiplier;
 
-  const slots: ProjectileEntity[] = [];
+  const slots = _slotBuf;
+  slots.length = 0;
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
     if (p.active && p.weaponId === 'hellfire') slots.push(p);
@@ -292,9 +338,12 @@ function tickSoulWhip(gs: GameState, weapon: WeaponInstance, dt: number): void {
   const px = gs.player.position.x;
   const py = gs.player.position.y;
 
-  // 270° sweep: 3 arcs covering most directions
-  const sweepAngles = [0, Math.PI / 2, Math.PI];
-  for (const baseAngle of sweepAngles) {
+  // Her vuruşta 90° dön: sabit yönlerde yukarısı hiç vurulmuyordu
+  weapon.angle = ((weapon.angle ?? 0) + Math.PI / 2) % TWO_PI;
+
+  // 270° süpürme: weapon.angle'dan başlayan 3 yay (dizi ayırmamak için döngüde hesaplanır)
+  for (let k = 0; k < 3; k++) {
+    const baseAngle = weapon.angle + k * (Math.PI / 2);
     const projX = px + Math.cos(baseAngle) * (length / 2);
     const projY = py + Math.sin(baseAngle) * (length / 2);
     const proj = spawnProjectile(gs, projX, projY,
@@ -325,13 +374,14 @@ function tickThunderStorm(gs: GameState, weapon: WeaponInstance, dt: number): vo
   weapon.cooldownTimer = 0.85 * gs.player.cooldownMultiplier;
 
   const maxTargets = 8;
-  const targets = _findNearestEnemies(gs, maxTargets);
+  const targetCount = _findNearestEnemies(gs, maxTargets);
   const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
   const rawDmg = Math.round(50 * gs.player.mightMultiplier);
   const dmg = isCrit ? rawDmg * 2 : rawDmg;
   if (isCrit) gs.totalCritsThisRun++;
 
-  for (const enemy of targets) {
+  for (let t = 0; t < targetCount; t++) {
+    const enemy = _nearBuf[t];
     enemy.hp -= dmg;
     enemy.hitFlashTimer = 0.12;
     spawnDamageNumber(gs, enemy.position.x, enemy.position.y, Math.round(dmg), isCrit);
@@ -345,12 +395,12 @@ function tickDeathAura(gs: GameState, weapon: WeaponInstance, dt: number): void 
   weapon.cooldownTimer -= dt;
   if (weapon.cooldownTimer > 0) return;
 
-  const baseRadius = 210; // level-8 garlic radius
-  const effectiveRadius = baseRadius * 2 * (1 + gs.player.bonusGarlicRadius);
-  weapon.cooldownTimer = 0.22 * gs.player.cooldownMultiplier;
+  // Eski 210 × 2 = 420 px tüm ekranı kaplıyordu; değerler artık DeathAuraConfig'te
+  const effectiveRadius = deathAuraEffectiveRadius(gs.player);
+  weapon.cooldownTimer = DeathAuraConfig.tickInterval * gs.player.cooldownMultiplier;
 
   const isCrit = gs.player.critChance > 0 && Math.random() < gs.player.critChance;
-  const rawDmg = Math.round(50 * gs.player.mightMultiplier);
+  const rawDmg = Math.round(DeathAuraConfig.damage * gs.player.mightMultiplier);
   const dmg = isCrit ? rawDmg * 2 : rawDmg;
   if (isCrit) gs.totalCritsThisRun++;
   const radSq = effectiveRadius * effectiveRadius;
@@ -372,9 +422,9 @@ function tickDeathAura(gs: GameState, weapon: WeaponInstance, dt: number): void 
     if (enemy.hp <= 0) handleEnemyDeath(gs, enemy);
   }
 
-  // 0.8% lifesteal per tick based on damage dealt
+  // Verilen hasarın bir kısmı kadar can çalma
   if (totalDamageDealt > 0) {
-    const heal = Math.floor(totalDamageDealt * 0.008);
+    const heal = Math.floor(totalDamageDealt * DeathAuraConfig.lifestealRatio);
     if (heal > 0) {
       gs.player.hp = Math.min(gs.player.maxHp, gs.player.hp + heal);
       gs.lifestealHealedThisRun += heal;
@@ -396,7 +446,8 @@ function tickDivineBlade(gs: GameState, weapon: WeaponInstance, dt: number): voi
   const resetHits = weapon.cooldownTimer <= 0;
   if (resetHits) weapon.cooldownTimer = 0.35 * gs.player.cooldownMultiplier;
 
-  const slots: ProjectileEntity[] = [];
+  const slots = _slotBuf;
+  slots.length = 0;
   for (let i = 0; i < gs.projectiles.length; i++) {
     const p = gs.projectiles[i];
     if (p.active && p.weaponId === 'divine_blade') slots.push(p);

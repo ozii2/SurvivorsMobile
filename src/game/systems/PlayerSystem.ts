@@ -18,17 +18,9 @@ export function tickPlayer(gs: GameState, dt: number, joystick: Vec2): void {
   if (p.invincibleTimer > 0) {
     p.invincibleTimer -= dt;
   }
-
-  // Camera follow with lag
-  const screenCenterX = 200; // approximate; GameCanvas passes real values
-  const screenCenterY = 400;
-  const targetX = p.position.x - screenCenterX;
-  const targetY = p.position.y - screenCenterY;
-  const lag = GameConfig.CAMERA_LAG;
-  gs.worldOffset.x += (targetX - gs.worldOffset.x) * (1 - lag);
-  gs.worldOffset.y += (targetY - gs.worldOffset.y) * (1 - lag);
 }
 
+/** Kameranın tek güncellendiği yer; GameCanvas her sabit adımda gerçek ekran merkeziyle çağırır. */
 export function updateCameraCenter(
   gs: GameState,
   halfW: number,

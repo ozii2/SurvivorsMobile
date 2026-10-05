@@ -12,7 +12,7 @@ export const GameConfig = {
   PLAYER_ARMOR: 0,
 
   // Camera
-  CAMERA_LAG: 0.85,         // lerp factor: 1-lag per frame → smooth follow
+  CAMERA_LAG: 0.72,         // Kamera yumuşatma: her sabit adımda hedefe (1 − LAG) oranında yaklaşır. Küçült = daha sıkı takip.
 
   // XP
   XP_BASE: 5,               // XP needed for level 2
@@ -44,6 +44,15 @@ export const GameConfig = {
   BASE_DAMAGE_MULT: 0.65,    // TÜM silahların global hasar çarpanı (1.0 = eski). Düşür = daha zor.
   GOLD_PER_WAVE: 5,          // run sonu: dalga başına altın (eski: 10)
   GOLD_PER_KILL: 0.25,       // run sonu: öldürme başına altın (eski: 0.5)
+
+  // Yükseltme havuzu tavanları — teklif filtresi ve applyUpgrade aynı değeri kullansın
+  MAX_WEAPON_SLOTS: 4,       // aynı anda taşınabilen silah; evrimli silah ana silahın slotunu kullanır
+  MAX_WEAPON_LEVEL: 8,       // silah seviye tavanı; evrim de bu seviyede açılır
+  CRIT_CAP: 0.75,            // kritik şans tavanı; üstü teklif edilmez
+  LIFESTEAL_CAP: 1.0,        // can çalma tavanı; üstü teklif edilmez
+  FALLBACK_HEAL: 30,         // havuz yetmezse "Can Yenile" yedeğinin verdiği can
+  FALLBACK_GOLD: 10,         // havuz yetmezse "Altın Kesesi" yedeğinin verdiği altın (run sonunda eklenir)
+  STAT_PICK_CAP: 5,          // Can/Hız/Zırh/Mıknatıs run başına en fazla bu kadar seçilebilir; havuzun geç oyunda boşalmasını sağlar
 } as const;
 
 export const LightningConfig: Record<number, { damage: number; targets: number; cooldown: number }> = {
@@ -67,6 +76,15 @@ export const GarlicConfig: Record<number, { radius: number; damage: number; tick
   6: { radius: 160, damage: 27, tickInterval: 0.38 },
   7: { radius: 175, damage: 32, tickInterval: 0.32 },
   8: { radius: 188, damage: 36, tickInterval: 0.27 },
+};
+
+// Death Aura (evrimli Sarımsak)
+// Sarımsak Özü her zaman sahipli (evrim malzemesi) → etkin yarıçap 235 × 1.2 ≈ 282 px
+export const DeathAuraConfig = {
+  baseRadius:     235,
+  damage:         50,
+  tickInterval:   0.22,
+  lifestealRatio: 0.008,
 };
 
 // Cross: 4-directional piercing projectile per level 1-8

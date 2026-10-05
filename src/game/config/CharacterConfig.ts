@@ -1,4 +1,5 @@
 import { CharacterId, PlayerEntity, WeaponId } from '../state/types';
+import { GameConfig } from './GameConfig';
 
 export interface CharacterDefinition {
   id: CharacterId;
@@ -59,7 +60,7 @@ export const CHARACTERS: CharacterDefinition[] = [
     color: '#ffaa22',
     icon: '🏹',
     applyBonus: (p) => {
-      p.critChance = Math.min(p.critChance + 0.10, 0.75);
+      p.critChance = Math.min(p.critChance + 0.10, GameConfig.CRIT_CAP);
     },
   },
 ];

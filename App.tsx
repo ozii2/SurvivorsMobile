@@ -82,7 +82,7 @@ function GameScreen({
 
   const chooseUpgrade = useCallback((choice: UpgradeOption) => {
     hapticSelection();
-    playSfxLevelUp();
+    // Ses yalnızca pencere açılınca (LevelUpModal) çalar; burada çalmak çift ses yapıyordu
     _chooseUpgrade(choice);
   }, [_chooseUpgrade]);
 
@@ -138,10 +138,11 @@ function GameScreen({
     runRecordedRef.current = true;
     // Store değil ref: dirilişten sonraki en güncel değerler burada
     const gs = gameStateRef.current;
-    const goldEarned = gs.waveNumber * GameConfig.GOLD_PER_WAVE + Math.floor(gs.totalKillsThisRun * GameConfig.GOLD_PER_KILL);
-    recordGame(gs.waveNumber, gs.gameTime, goldEarned, gs.bossKilledThisRun, gs.gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
-    // getState(): recordGame sonrası güncel save verisiyle kontrol et
+    // Altın Kesesi seçimleri dahil
+    const goldEarned = gs.waveNumber * GameConfig.GOLD_PER_WAVE + Math.floor(gs.totalKillsThisRun * GameConfig.GOLD_PER_KILL) + gs.bonusGoldThisRun;
+    // Kayıttan önce kontrol et: checkAchievements totalGames + 1'i kendisi hesaplıyor
     const newAchievements = checkAchievements(gs, useSaveStore.getState());
+    recordGame(gs.waveNumber, gs.gameTime, goldEarned, gs.bossKilledThisRun, gs.gameTime >= 300, gs.player.characterId, gs.totalKillsThisRun);
     if (newAchievements.length > 0) unlockAchievements(newAchievements);
   }, [gameStateRef, recordGame, unlockAchievements]);
 

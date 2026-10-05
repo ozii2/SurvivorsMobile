@@ -114,6 +114,7 @@ export function createInitialGameState(characterId: CharacterId = 'warrior'): Ga
     bonusGarlicRadius: 0,
     bonusPierceLifetime: 0,
     bonusLightningTargets: 0,
+    statPicks: { max_hp: 0, speed: 0, armor: 0, magnet: 0 },
   };
   char.applyBonus(player);
 
@@ -135,7 +136,7 @@ export function createInitialGameState(characterId: CharacterId = 'warrior'): Ga
     shakeTimer: 0,
     shakeMagnitude: 0,
     isPaused: false,
-    pendingLevelUp: false,
+    pendingLevelUps: 0,
     pendingChestOpen: false,
     lastUISyncTime: 0,
     isGameOver: false,
@@ -155,5 +156,6 @@ export function createInitialGameState(characterId: CharacterId = 'warrior'): Ga
     bossKilledThisRun: false,
     reachedWave3NoDamage: false,
     runAchievements: [],
+    bonusGoldThisRun: 0,
   };
 }

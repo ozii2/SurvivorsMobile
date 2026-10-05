@@ -9,17 +9,17 @@ export interface AchievementDef {
 
 export const ALL_ACHIEVEMENTS: AchievementDef[] = [
   { id: 'first_blood',   name: 'İlk Kan',        description: 'İlk düşmanı öldür' },
-  { id: 'wave3',         name: 'Dalgayı Geç',     description: 'Wave 3\'e ulaş' },
-  { id: 'wave6',         name: 'Savaşçı',         description: 'Wave 6\'ya ulaş' },
-  { id: 'wave9',         name: 'Efsane',          description: 'Wave 9\'a ulaş' },
-  { id: 'level10',       name: 'Üstat',           description: 'Level 10\'a ulaş' },
-  { id: 'combo10',       name: 'Zincirleme',      description: 'x10 combo yap' },
-  { id: 'combo25',       name: 'Katliamcı',       description: 'x25 combo yap' },
+  { id: 'wave3',         name: 'Dalgayı Geç',     description: 'Dalga 3\'e ulaş' },
+  { id: 'wave6',         name: 'Savaşçı',         description: 'Dalga 6\'ya ulaş' },
+  { id: 'wave9',         name: 'Efsane',          description: 'Dalga 9\'a ulaş' },
+  { id: 'level10',       name: 'Üstat',           description: 'Seviye 10\'a ulaş' },
+  { id: 'combo10',       name: 'Zincirleme',      description: 'x10 kombo yap' },
+  { id: 'combo25',       name: 'Katliamcı',       description: 'x25 kombo yap' },
   { id: 'full_arsenal',  name: 'Tam Cephane',     description: '4 farklı silah edin' },
   { id: 'survivor',      name: 'Hayatta Kalan',   description: '5 dakika hayatta kal' },
   { id: 'boss_kill',     name: 'Patron Avcısı',   description: 'Patron\'u öldür' },
   { id: 'crit_master',   name: 'Keskin Göz',      description: 'Tek runda 50 kritik vur' },
-  { id: 'no_damage_w2',  name: 'Dokunulmaz',      description: 'Wave 3\'e hasarsız ulaş' },
+  { id: 'no_damage_w2',  name: 'Dokunulmaz',      description: 'Dalga 3\'e hasarsız ulaş' },
   { id: 'play5',         name: 'Vazgeçmez',       description: '5 oyun oyna' },
   { id: 'play20',        name: 'Bağımlı',         description: '20 oyun oyna' },
   { id: 'lifesteal',     name: 'Vampir',          description: 'Lifesteal ile 100 HP topla' },
@@ -37,7 +37,7 @@ export function checkAchievements(gs: GameState, save: SaveData): string[] {
   check('first_blood',  gs.totalKillsThisRun >= 1);
   check('wave3',        gs.currentWaveIndex >= 2);
   check('wave6',        gs.currentWaveIndex >= 5);
-  check('wave9',        gs.currentWaveIndex >= 9);
+  check('wave9',        gs.currentWaveIndex >= 8);  // index 8 = dalga 9
   check('level10',      gs.player.level >= 10);
   check('combo10',      gs.maxComboThisRun >= 10);
   check('combo25',      gs.maxComboThisRun >= 25);

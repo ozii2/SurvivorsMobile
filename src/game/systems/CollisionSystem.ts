@@ -9,6 +9,35 @@ import { hapticHeavy } from '../../services/AudioService';
 // Module-level buffer — reused each frame, avoids per-call allocation
 const _activeEnemyBuf: number[] = [];
 
+// ─── Oyuncuya hasar (temas + patlama ortak) ──────────────────────────────────
+/**
+ * Oyuncuya zırh ve dokunulmazlık kurallarıyla hasar verir.
+ * Tüm hasar kaynakları aynı kurallara uysun diye tek yerde; nesne ayırmaz.
+ * @returns Hasar uygulandıysa true, dokunulmazlık yüzünden atlandıysa false.
+ */
+function damagePlayer(gs: GameState, rawDamage: number, shakeTime: number, shakeMag: number): boolean {
+  const p = gs.player;
+  if (p.invincibleTimer > 0) return false;
+
+  const armorReduction = p.armor / (p.armor + 20);
+  const dmg = Math.max(1, Math.round(rawDamage * (1 - armorReduction)));
+  p.hp -= dmg;
+  p.invincibleTimer = GameConfig.PLAYER_IFRAMES;
+  gs.shakeTimer = shakeTime;
+  gs.shakeMagnitude = shakeMag;
+  // Reset combo on taking damage
+  gs.killCombo = 0;
+  gs.totalDamageTaken += dmg;
+  hapticHeavy();
+
+  if (p.hp <= 0) {
+    p.hp = 0;
+    gs.isGameOver = true;
+    gs.isPaused = true;
+  }
+  return true;
+}
+
 // ─── Shared death handler (used by CollisionSystem + WeaponSystem) ────────────
 export function handleEnemyDeath(gs: GameState, enemy: EnemyEntity): void {
   const cfg = EnemyConfig[enemy.type];
@@ -38,16 +67,8 @@ export function handleEnemyDeath(gs: GameState, enemy: EnemyEntity): void {
     const dx = gs.player.position.x - enemy.position.x;
     const dy = gs.player.position.y - enemy.position.y;
     if (dx * dx + dy * dy < EXPLOSIVE_AOE_RADIUS * EXPLOSIVE_AOE_RADIUS) {
-      gs.player.hp = Math.max(0, gs.player.hp - EXPLOSIVE_AOE_DAMAGE);
-      gs.totalDamageTaken += EXPLOSIVE_AOE_DAMAGE;
-      if (gs.player.hp <= 0) {
-        gs.player.hp = 0;
-        gs.isGameOver = true;
-        gs.isPaused = true;
-      }
-      gs.shakeTimer = 0.45;
-      gs.shakeMagnitude = 14;
-      hapticHeavy();
+      // Temas hasarıyla aynı kurallar: zırh, dokunulmazlık, kombo sıfırlama
+      damagePlayer(gs, EXPLOSIVE_AOE_DAMAGE, 0.45, 14);
     }
     for (let i = 0; i < 16; i++) {
       const angle = (Math.PI * 2 * i) / 16;
@@ -112,24 +133,10 @@ export function tickCollisions(gs: GameState): void {
       const dy = p.position.y - enemy.position.y;
       const minDist = p.radius + enemy.radius;
       if (dx * dx + dy * dy < minDist * minDist) {
-        const armorReduction = p.armor / (p.armor + 20);
-        const dmg = Math.max(1, Math.round(enemy.damage * (1 - armorReduction)));
-        p.hp -= dmg;
-        p.invincibleTimer = GameConfig.PLAYER_IFRAMES;
-        gs.shakeTimer = 0.30;
-        gs.shakeMagnitude = 7;
-        enemy.contactTimer = 0.5;
-        // Reset combo on taking damage
-        gs.killCombo = 0;
-        gs.totalDamageTaken += dmg;
-        hapticHeavy();
-
-        if (p.hp <= 0) {
-          p.hp = 0;
-          gs.isGameOver = true;
-          gs.isPaused = true;
+        if (damagePlayer(gs, enemy.damage, 0.30, 7)) {
+          enemy.contactTimer = 0.5;
+          break;
         }
-        break;
       }
     }
   }
@@ -149,13 +156,14 @@ export function tickCollisions(gs: GameState): void {
     if (distSq < collectRadiusSq) {
       gem.active = false;
       p.xp += gem.value;
-      if (p.xp >= p.xpToNextLevel) {
+      // while: büyük taş birden fazla seviye atlatabilir, her biri ayrı seçim hakkı
+      while (p.xp >= p.xpToNextLevel) {
         p.xp -= p.xpToNextLevel;
         p.level++;
         p.xpToNextLevel = Math.floor(
           GameConfig.XP_BASE * Math.pow(GameConfig.XP_SCALE, p.level - 1)
         );
-        gs.pendingLevelUp = true;
+        gs.pendingLevelUps++;
       }
     } else if (distSq < magnetRadiusSq) {
       gem.isMagnetized = true;

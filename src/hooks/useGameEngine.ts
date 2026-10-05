@@ -2,7 +2,7 @@ import { useRef, useCallback } from 'react';
 import { useSharedValue } from 'react-native-reanimated';
 import { GameState, UpgradeOption, CharacterId } from '../game/state/types';
 import { createInitialGameState } from '../game/state/GameState';
-import { applyUpgrade } from '../game/systems/UpgradeSystem';
+import { applyUpgrade, takeNextPendingChoices } from '../game/systems/UpgradeSystem';
 import { resetWaveAccumulators } from '../game/systems/WaveSystem';
 import { useGameStore } from '../game/state/useGameStore';
 import { useSaveStore } from '../game/state/useSaveStore';
@@ -35,6 +35,7 @@ export function useGameEngine(characterId: CharacterId = 'warrior') {
 
   const resetGame = useGameStore(s => s.resetUI);
   const clearChoices = useGameStore(s => s.clearUpgradeChoices);
+  const setUpgradeChoices = useGameStore(s => s.setUpgradeChoices);
   const setPaused = useGameStore(s => s.setPaused);
 
   const handleLevelUp = useCallback((choices: UpgradeOption[]) => {
@@ -45,9 +46,17 @@ export function useGameEngine(characterId: CharacterId = 'warrior') {
   const chooseUpgrade = useCallback((choice: UpgradeOption) => {
     const gs = gameStateRef.current;
     applyUpgrade(gs, choice);
+    // Kuyrukta seçim varsa pencereyi kapatmadan sıradakini göster; arada oyun akmasın
+    const next = takeNextPendingChoices(gs);
+    if (next) {
+      setUpgradeChoices(next);
+      return;
+    }
     gs.isPaused = false;
+    // Store'u da anında güncelle; yoksa duraklatma menüsü bir an görünür.
+    setPaused(false);
     clearChoices();
-  }, [clearChoices]);
+  }, [clearChoices, setUpgradeChoices, setPaused]);
 
   const pauseGame = useCallback(() => {
     const gs = gameStateRef.current;

@@ -69,7 +69,10 @@ export interface PlayerEntity extends Entity {
   bonusGarlicRadius: number;      // additive fraction (0.2 = +20% radius)
   bonusPierceLifetime: number;    // additive fraction (0.25 = +25% lifetime)
   bonusLightningTargets: number;  // integer extra targets
+  statPicks: Record<StatUpgradeType, number>;  // Run içinde level-up ile seçilen stat yükseltmesi sayısı
 }
+
+export type StatUpgradeType = 'max_hp' | 'speed' | 'armor' | 'magnet';
 
 export type EnemyType = 'basic' | 'fast' | 'tank' | 'boss' | 'swarm' | 'explosive';
 
@@ -136,7 +139,7 @@ export interface GameState {
   waveNumber: number;
   gameTime: number;
   isPaused: boolean;
-  pendingLevelUp: boolean;
+  pendingLevelUps: number;         // Seçimi bekleyen level-up sayısı
   pendingChestOpen: boolean;       // chest collected, waiting for modal
   lastUISyncTime: number;
   isGameOver: boolean;
@@ -159,6 +162,7 @@ export interface GameState {
   bossKilledThisRun: boolean;
   reachedWave3NoDamage: boolean;
   runAchievements: string[];
+  bonusGoldThisRun: number;        // Altın Kesesi seçimlerinden run içinde biriken altın
 }
 
 // ─── Upgrade system ──────────────────────────────────────────────────────────
@@ -173,7 +177,9 @@ export type UpgradeType =
   | 'crit'
   | 'lifesteal'
   | 'passive_item'
-  | 'weapon_evolve';
+  | 'weapon_evolve'
+  | 'heal'
+  | 'gold';
 
 export interface UpgradeOption {
   id: string;

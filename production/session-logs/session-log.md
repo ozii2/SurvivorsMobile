@@ -12182,3 +12182,326 @@ src/ui/WeaponSelectScreen.tsx
 tsconfig.json
 ---
 
+## Session End: 20261005_142205
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+---
+
+## Session End: 20261005_142322
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/systems/UpgradeSystem.ts
+---
+
+## Session End: 20261005_142836
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_143058
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_143224
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_143545
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_161329
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_161619
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/GameConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+---
+
+## Session End: 20261005_161731
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/GameConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+---
+
+## Session End: 20261005_161932
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/GameConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+---
+
+## Session End: 20261005_162442
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+---
+
+## Session End: 20261005_162752
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+---
+
+## Session End: 20261005_162938
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/CharacterConfig.ts
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+src/ui/LevelUpModal.tsx
+---
+
+## Session End: 20261005_163259
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/CharacterConfig.ts
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/ui/HUDOverlay.tsx
+src/ui/LevelUpModal.tsx
+---
+
+## Session End: 20261005_163737
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/CharacterConfig.ts
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WaveSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/services/AchievementService.ts
+src/ui/HUDOverlay.tsx
+src/ui/LevelUpModal.tsx
+src/ui/TutorialOverlay.tsx
+---
+
+## Session End: 20261005_164153
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/CharacterConfig.ts
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WaveSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/services/AchievementService.ts
+src/ui/HUDOverlay.tsx
+src/ui/LevelUpModal.tsx
+src/ui/TutorialOverlay.tsx
+---
+
+## Session End: 20261005_164847
+### Commits
+85645b6 Fix: Finalize run stats on game over exit/restart to include post-revive progress
+### Uncommitted Changes
+App.tsx
+production/session-logs/session-log.md
+src/game/config/CharacterConfig.ts
+src/game/config/GameConfig.ts
+src/game/config/PassiveItemConfig.ts
+src/game/config/UpgradeConfig.ts
+src/game/state/GameState.ts
+src/game/state/types.ts
+src/game/systems/CollisionSystem.ts
+src/game/systems/PlayerSystem.ts
+src/game/systems/UpgradeSystem.ts
+src/game/systems/WaveSystem.ts
+src/game/systems/WeaponSystem.ts
+src/hooks/useGameEngine.ts
+src/rendering/GameCanvas.tsx
+src/rendering/GamePaints.ts
+src/rendering/drawGame.ts
+src/services/AchievementService.ts
+src/ui/HUDOverlay.tsx
+src/ui/LevelUpModal.tsx
+src/ui/TutorialOverlay.tsx
+---
+

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -32,11 +32,26 @@ const UPGRADE_STYLE: Record<UpgradeType, { icon: string; color: string }> = {
   lifesteal:      { icon: '🩸',  color: '#E91E63' },
   passive_item:   { icon: '💠',  color: '#7B68EE' },
   weapon_evolve:  { icon: '✨',  color: '#FFD700' },
+  heal:           { icon: '🍗',  color: '#66dd88' },
+  gold:           { icon: '🪙',  color: '#ffe066' },
 };
 
 export function LevelUpModal({ visible, choices, onChoose }: Props) {
   const translateY = useSharedValue(60);
   const opacity = useSharedValue(0);
+
+  // Giriş kilidi: çift dokunma iki seçim yapmasın, ardışık pencerede de kazara seçim olmasın
+  const lockedUntilRef = useRef(0);
+  useEffect(() => {
+    lockedUntilRef.current = Date.now() + 300;
+  }, [choices]);
+
+  const handlePress = (choice: UpgradeOption) => {
+    if (Date.now() < lockedUntilRef.current) return;
+    // Yeni seçenekler gelene kadar kilitli kal; React yeniden çizmeden gelen ikinci dokunuş yutulsun
+    lockedUntilRef.current = Number.POSITIVE_INFINITY;
+    onChoose(choice);
+  };
 
   useEffect(() => {
     if (visible) {
@@ -76,7 +91,7 @@ export function LevelUpModal({ visible, choices, onChoose }: Props) {
               <TouchableOpacity
                 key={choice.id}
                 style={[styles.card, { borderColor: `${style.color}66` }]}
-                onPress={() => onChoose(choice)}
+                onPress={() => handlePress(choice)}
                 activeOpacity={0.75}
               >
                 {/* Colored left stripe */}

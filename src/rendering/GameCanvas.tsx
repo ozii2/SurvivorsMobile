@@ -15,9 +15,10 @@ import { tickDamageNumbers } from '../game/systems/DamageNumberSystem';
 import { tickCollisions } from '../game/systems/CollisionSystem';
 import { tickWaves } from '../game/systems/WaveSystem';
 import { tickWeapons } from '../game/systems/WeaponSystem';
-import { generateUpgradeChoices, generateChestChoices } from '../game/systems/UpgradeSystem';
+import { takeNextPendingChoices } from '../game/systems/UpgradeSystem';
 import { tickChests } from '../game/systems/ChestSystem';
 import { useGameStore } from '../game/state/useGameStore';
+import { useSettingsStore } from '../game/state/useSettingsStore';
 import { drawFrame } from './drawGame';
 
 // ── Module-level recorder: created once, never reallocated ───────────────────
@@ -57,6 +58,8 @@ export function GameCanvas({
   const playerImage = useImage(playerPhoto ?? null);
   const syncStore        = useGameStore(s => s.syncFromGameState);
   const setUpgradeChoices = useGameStore(s => s.setUpgradeChoices);
+  // Ayarlar'daki grafik kalitesi; drawFrame ayrıntı seviyesini buna göre seçer
+  const quality = useSettingsStore(s => s.graphicsQuality);
 
   // SharedValue<SkPicture>: Skia reads this directly on the UI thread —
   // no React reconciliation happens when picture.value is updated.
@@ -95,9 +98,22 @@ export function GameCanvas({
 
       accumulator.current -= step;
 
-      if (gs.isGameOver || gs.pendingLevelUp || gs.pendingChestOpen) {
+      if (gs.isGameOver || gs.pendingLevelUps > 0 || gs.pendingChestOpen) {
         accumulator.current = 0;
         break;
+      }
+    }
+
+    // ── Bekleyen seçimler ──
+    // Sync bloğunu beklemeden hemen duraklat: aksi halde oyun 100 ms'ye kadar akmaya devam eder
+    if (!gs.isGameOver) {
+      const choices = takeNextPendingChoices(gs);
+      if (choices) {
+        gs.isPaused = true;
+        setUpgradeChoices(choices);
+        onLevelUp(choices);
+        syncStore(gs);
+        syncTimer.current = 0;
       }
     }
 
@@ -117,7 +133,7 @@ export function GameCanvas({
     // finishRecordingAsPicture() seals it; setting picture.value pushes it to
     // the UI thread where Skia renders it — without React reconciling anything.
     const skCanvas = _recorder.beginRecording(Skia.XYWHRect(0, 0, screenW, screenH));
-    drawFrame(skCanvas, gs, renderOffset, screenW, screenH, bodyColor, glowRgb, playerImage);
+    drawFrame(skCanvas, gs, renderOffset, screenW, screenH, bodyColor, glowRgb, playerImage, quality);
     picture.value = _recorder.finishRecordingAsPicture();
 
     // ── UI sync (~10 Hz) ──
@@ -129,29 +145,13 @@ export function GameCanvas({
       syncTimer.current = 0;
       syncStore(gs);
 
-      if (gs.pendingLevelUp) {
-        gs.pendingLevelUp = false;
-        gs.isPaused = true;
-        const choices = generateUpgradeChoices(gs);
-        setUpgradeChoices(choices);
-        onLevelUp(choices);
-      }
-
-      if (gs.pendingChestOpen) {
-        gs.pendingChestOpen = false;
-        gs.isPaused = true;
-        const choices = generateChestChoices(gs);
-        setUpgradeChoices(choices);
-        onLevelUp(choices);
-      }
-
       if (gs.isGameOver) {
         onGameOver();
       }
     }
   }, [
     gameStateRef, joystickX, joystickY, screenW, screenH,
-    bodyColor, glowRgb, picture,
+    bodyColor, glowRgb, picture, quality,
     syncStore, setUpgradeChoices, onLevelUp, onGameOver,
   ]);
 
