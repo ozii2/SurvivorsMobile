@@ -35,7 +35,12 @@ export function spawnEnemy(
   slot.isElite = isElite;
 
   const minute  = Math.floor(gs.gameTime / 60);
-  const timehp  = 1 + 0.05 * minute;
+  // Kesirli dakika: can/hasar dakika başlarında sıçramasın, yumuşak artsın
+  const mf      = gs.gameTime / 60;
+  const late    = Math.max(0, mf - GameConfig.DIFFICULTY_RAMP_START_MIN);
+  // Rampa öncesi eski doğrusal artış, sonrası üstel; oyuncunun silah ölçeklemesine yetişsin
+  const timehp  = (1 + GameConfig.ENEMY_HP_EARLY_PER_MIN * Math.min(mf, GameConfig.DIFFICULTY_RAMP_START_MIN))
+                * Math.pow(GameConfig.ENEMY_HP_LATE_GROWTH, late);
   const timespd = 1 + 0.03 * minute;
   const hpMult  = (isElite ? 2.5 : 1) * timehp;
   const spdMult = (isElite ? 1.3 : 1) * timespd;
@@ -43,7 +48,8 @@ export function spawnEnemy(
   slot.hp      = Math.round(cfg.hp    * hpMult);
   slot.maxHp   = slot.hp;
   slot.speed   = Math.round(cfg.speed * spdMult);
-  slot.damage  = cfg.damage;
+  // Rampa sonrası temas hasarı da artar; yoksa geç oyunda düşmanlar tehdit olmaz
+  slot.damage  = Math.round(cfg.damage * (1 + GameConfig.ENEMY_DMG_LATE_PER_MIN * late));
   slot.xpValue = isElite ? cfg.xpValue * 3 : cfg.xpValue;
   slot.contactTimer = 0;
   slot.hitFlashTimer = 0;

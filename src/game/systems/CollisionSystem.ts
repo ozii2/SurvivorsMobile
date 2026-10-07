@@ -1,5 +1,5 @@
 import { GameState, EnemyEntity } from '../state/types';
-import { GameConfig, EnemyConfig, EXPLOSIVE_AOE_RADIUS, EXPLOSIVE_AOE_DAMAGE } from '../config/GameConfig';
+import { GameConfig, EnemyConfig, EXPLOSIVE_AOE_RADIUS, EXPLOSIVE_AOE_DAMAGE, xpToNextLevel } from '../config/GameConfig';
 import { spawnGem } from './XPGemSystem';
 import { spawnDeathParticles, spawnParticle } from './ParticleSystem';
 import { spawnDamageNumber } from './DamageNumberSystem';
@@ -68,7 +68,8 @@ export function handleEnemyDeath(gs: GameState, enemy: EnemyEntity): void {
     const dy = gs.player.position.y - enemy.position.y;
     if (dx * dx + dy * dy < EXPLOSIVE_AOE_RADIUS * EXPLOSIVE_AOE_RADIUS) {
       // Temas hasarıyla aynı kurallar: zırh, dokunulmazlık, kombo sıfırlama
-      damagePlayer(gs, EXPLOSIVE_AOE_DAMAGE, 0.45, 14);
+      // Patlama da düşman hasarı gibi zamanla güçlenir
+      damagePlayer(gs, Math.round(EXPLOSIVE_AOE_DAMAGE * enemy.damage / cfg.damage), 0.45, 14);
     }
     for (let i = 0; i < 16; i++) {
       const angle = (Math.PI * 2 * i) / 16;
@@ -160,9 +161,7 @@ export function tickCollisions(gs: GameState): void {
       while (p.xp >= p.xpToNextLevel) {
         p.xp -= p.xpToNextLevel;
         p.level++;
-        p.xpToNextLevel = Math.floor(
-          GameConfig.XP_BASE * Math.pow(GameConfig.XP_SCALE, p.level - 1)
-        );
+        p.xpToNextLevel = xpToNextLevel(p.level);
         gs.pendingLevelUps++;
       }
     } else if (distSq < magnetRadiusSq) {

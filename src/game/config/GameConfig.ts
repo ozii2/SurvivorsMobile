@@ -53,7 +53,24 @@ export const GameConfig = {
   FALLBACK_HEAL: 30,         // havuz yetmezse "Can Yenile" yedeğinin verdiği can
   FALLBACK_GOLD: 10,         // havuz yetmezse "Altın Kesesi" yedeğinin verdiği altın (run sonunda eklenir)
   STAT_PICK_CAP: 5,          // Can/Hız/Zırh/Mıknatıs run başına en fazla bu kadar seçilebilir; havuzun geç oyunda boşalmasını sağlar
+
+  // Zorluk eğrisi — oyuncu hasarı silah seviyeleriyle 10–20 kat büyüdüğü için düşman da orta/geç oyunda hızlanmalı
+  DIFFICULTY_RAMP_START_MIN: 3,  // bu dakikaya kadar eski yumuşak artış; sonrasında rampa başlar (erken oyun değişmesin)
+  ENEMY_HP_EARLY_PER_MIN: 0.05,  // rampa öncesi dakika başına doğrusal can artışı (eski değer)
+  ENEMY_HP_LATE_GROWTH: 1.35,    // rampa sonrası dakika başına can çarpanı (üstel); silah ölçeklemesine yetişsin
+  ENEMY_DMG_LATE_PER_MIN: 0.20,  // rampa sonrası dakika başına +%20 temas hasarı (doğrusal); durarak hayatta kalınmasın
+  XP_LATE_LEVEL: 10,             // bu seviyeden sonra XP eğrisi ek olarak dikleşir
+  XP_LATE_SCALE: 1.06,           // XP_LATE_LEVEL sonrası seviye başına ek çarpan; geç oyunda yükseltme seli olmasın
 } as const;
+
+/** Verilen seviyeden bir sonrakine geçmek için gereken XP. */
+export function xpToNextLevel(level: number): number {
+  return Math.floor(
+    GameConfig.XP_BASE
+    * Math.pow(GameConfig.XP_SCALE, level - 1)
+    * Math.pow(GameConfig.XP_LATE_SCALE, Math.max(0, level - GameConfig.XP_LATE_LEVEL))
+  );
+}
 
 export const LightningConfig: Record<number, { damage: number; targets: number; cooldown: number }> = {
   1: { damage:  9, targets: 1, cooldown: 2.20 },
